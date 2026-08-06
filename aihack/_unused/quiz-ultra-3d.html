@@ -1,0 +1,4955 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>ASI DIVE  "井"の底から世界を殴れ！</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+    }
+    
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      display: none; /* 初期状態では非表示 */
+    }
+    
+    #canvas-container.active {
+      display: block;
+    }
+    
+    /* API設定ボタン（右上歯車） */
+    #settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    
+    #settings-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+    
+    #settings-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+    }
+    
+    /* API設定モーダル */
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
+    }
+    
+    #settings-modal.active {
+      display: flex;
+    }
+    
+    .settings-content {
+      background: #1a1a1a;
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 500px;
+      width: 90%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .settings-content h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .settings-group {
+      margin-bottom: 20px;
+    }
+    
+    .settings-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    
+    .settings-group input {
+      width: 100%;
+      padding: 12px;
+      background: #2a2a2a;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 5px;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    .settings-group input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    
+    .settings-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+    
+    .btn {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+      min-width: 200px;
+      height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-primary {
+      background: #4CAF50;
+      color: #fff;
+    }
+    
+    .btn-primary:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: #666;
+      color: #fff;
+    }
+    
+    .btn-secondary:hover {
+      background: #777;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* UIオーバーレイ */
+    #game-ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    .ui-panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      pointer-events: auto;
+      z-index: 100;
+    }
+    
+    #status-panel {
+      top: 20px;
+      left: 20px;
+      min-width: 250px;
+      z-index: 9999;
+      pointer-events: auto;
+      max-width: 400px;
+    }
+    
+    #status-panel h3 {
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #4CAF50;
+    }
+    
+    #status-panel .status-item {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    
+    /* 体力ゲージ */
+    #health-bar-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      pointer-events: none;
+    }
+    
+    #health-bar-label {
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 5px;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    
+    #health-bar-background {
+      width: 300px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    #health-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+      transition: width 0.3s ease;
+      border-radius: 8px;
+    }
+    
+    /* 勝利メッセージ */
+    #victory-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #victory-message.active {
+      display: block;
+    }
+    
+    #victory-message h1 {
+      font-size: 120px;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.8),
+        0 0 40px rgba(255, 215, 0, 0.6),
+        0 0 60px rgba(255, 215, 0, 0.4),
+        4px 4px 8px rgba(0, 0, 0, 0.9);
+      margin: 0;
+      animation: victoryPulse 1.5s ease-in-out infinite;
+      letter-spacing: 0.1em;
+    }
+    
+    /* 爆死メッセージ */
+    #death-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10001;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #death-message.active {
+      display: block;
+    }
+    
+    #death-message h1 {
+      font-size: 150px;
+      font-weight: bold;
+      color: #FF0000;
+      text-shadow: 
+        0 0 30px rgba(255, 0, 0, 1.0),
+        0 0 60px rgba(255, 0, 0, 0.8),
+        0 0 90px rgba(255, 0, 0, 0.6),
+        6px 6px 12px rgba(0, 0, 0, 1.0);
+      margin: 0;
+      animation: deathPulse 1.0s ease-in-out infinite;
+      letter-spacing: 0.15em;
+    }
+    
+    @keyframes deathPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.15);
+        opacity: 0.95;
+      }
+    }
+    
+    @keyframes victoryPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+      }
+    }
+    
+    /* 技術解説スライド */
+    #technical-slide {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10002;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #000000;
+    }
+    
+    #technical-slide.active {
+      display: flex;
+    }
+    
+    #technical-slide img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    #instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      pointer-events: auto;
+    }
+    
+    #instructions h4 {
+      margin-bottom: 8px;
+      color: #4CAF50;
+    }
+    
+    #instructions .key {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin: 2px;
+      font-weight: bold;
+    }
+    
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      flex-direction: column;
+    }
+    
+    #loading-screen.hidden {
+      display: none;
+    }
+    
+    #loading-screen h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #result-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000; /* より高いz-indexに変更 */
+      flex-direction: column;
+      pointer-events: auto;
+    }
+    
+    #result-overlay.active {
+      display: flex;
+    }
+    
+    #result-overlay h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    
+    #result-overlay.correct h1 {
+      color: #4CAF50;
+    }
+    
+    #result-overlay.incorrect h1 {
+      color: #f44336;
+    }
+    
+    #result-image-container {
+      display: none;
+    }
+    
+    /* アバター選択画面 */
+    #avatar-select-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5); /* より透明にして3D空間が見えるように */
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      z-index: 4000;
+    }
+    
+    #avatar-select-screen.active {
+      display: flex;
+    }
+    
+    #avatar-select-screen h2 {
+      font-size: 28px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      z-index: 4001;
+      position: relative;
+    }
+    
+    .avatar-selection-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      height: 100%;
+      justify-content: space-between;
+      padding: 20px 0;
+      box-sizing: border-box;
+    }
+    
+    /* 3Dアバター表示エリア（上部） */
+    .avatar-3d-area {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+      max-height: 70vh;
+    }
+    
+    /* 選択ボタンエリア（下部） */
+    .avatar-options-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 30px 20px;
+      width: 100%;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 50%, transparent 100%);
+      z-index: 4002;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+    
+    .avatar-options {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      width: 100%;
+    }
+    
+    .avatar-option {
+      background: rgba(255, 255, 255, 0.25);
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      padding: 18px 28px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      min-width: 160px;
+      max-width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transform: scale(1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .avatar-option:hover {
+      background: rgba(255, 255, 255, 0.35);
+      border-color: #4CAF50;
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+    }
+    
+    .avatar-option.selected {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.5);
+      border-width: 4px;
+      box-shadow: 0 8px 30px rgba(76, 175, 80, 0.8);
+      transform: scale(1.3);
+    }
+    
+    .avatar-option h3 {
+      margin: 12px 0 4px 0;
+      font-size: 20px;
+      color: #fff;
+    }
+    
+    .avatar-option p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .avatar-preview {
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: bold;
+      color: #fff;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      transition: all 0.3s ease;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .avatar-option.selected .avatar-preview {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.4);
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6);
+    }
+    
+    #confirm-avatar-btn {
+      margin-top: 10px;
+      background: #4CAF50 !important;
+      color: #fff !important;
+      font-size: 18px !important;
+      font-weight: bold !important;
+      padding: 16px 40px !important;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6) !important;
+      z-index: 4003;
+      position: relative;
+    }
+    
+    #confirm-avatar-btn:hover {
+      background: #45a049 !important;
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.8) !important;
+    }
+    
+    #confirm-avatar-btn:disabled {
+      background: #666 !important;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+  </style>
+</head>
+<body>
+  <!-- アバター選択画面 -->
+  <div id="avatar-select-screen">
+    <h2>回答者アバターを選択してください</h2>
+    <div class="avatar-selection-container">
+      <!-- 3Dアバター表示エリア（上部） -->
+      <div class="avatar-3d-area">
+        <!-- 3Dアバターはcanvas-containerに表示される -->
+      </div>
+      
+      <!-- 選択ボタンエリア（下部） -->
+      <div class="avatar-options-area">
+        <div class="avatar-options">
+          <div class="avatar-option" data-avatar="sample5">
+            <div class="avatar-preview">5</div>
+            <h3>サンプル5</h3>
+            <p>審査員A</p>
+          </div>
+          <div class="avatar-option" data-avatar="sample9">
+            <div class="avatar-preview">9</div>
+            <h3>サンプル9</h3>
+            <p>審査員B</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="confirm-avatar-btn" disabled>選択したアバターで進む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ローディング画面 -->
+  <div id="loading-screen" class="hidden">
+    <h1>ASI DIVE</h1>
+    <div class="spinner"></div>
+    <p style="margin-top: 20px;">読み込み中...</p>
+  </div>
+
+  <!-- 3Dキャンバスコンテナ -->
+  <div id="canvas-container"></div>
+
+  <!-- 設定ボタン（歯車） -->
+  <div id="settings-btn">
+    <svg viewBox="0 0 24 24">
+      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41l-0.36,2.54c-0.59,0.24-1.13,0.56-1.62,0.94l-2.39-0.96c-0.22-0.08-0.47,0-0.59,0.22 L2.74,8.87c-0.12,0.22-0.07,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.07,0.62-0.07,0.94s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+    </svg>
+  </div>
+
+  <!-- API設定モーダル -->
+  <div id="settings-modal">
+    <div class="settings-content">
+      <h2>API設定</h2>
+      <div class="settings-group">
+        <label for="gemini-api-key">Gemini API Key</label>
+        <input type="password" id="gemini-api-key" placeholder="Gemini APIキーを入力">
+      </div>
+      <div class="settings-group">
+        <label for="whisper-api-key">Whisper API Key</label>
+        <input type="password" id="whisper-api-key" placeholder="OpenAI Whisper APIキーを入力">
+      </div>
+      <div class="settings-buttons">
+        <button class="btn btn-primary" id="save-settings">保存</button>
+        <button class="btn btn-secondary" id="close-settings">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ゲームUI -->
+  <div id="game-ui">
+    <!-- 体力ゲージ -->
+    <div id="health-bar-container">
+      <div id="health-bar-label">量子コンピューター体力</div>
+      <div id="health-bar-background">
+        <div id="health-bar-fill"></div>
+      </div>
+    </div>
+    
+    <div id="status-panel" class="ui-panel">
+      <h3>ゲーム状態</h3>
+      <div class="status-item" id="status-text">初期化中...</div>
+      <div class="status-item" id="avatar-status">アバター読み込み中...</div>
+      <div class="status-item" id="api-status">API: 未設定</div>
+    </div>
+
+    <div id="instructions" class="ui-panel">
+      <h4>操作方法</h4>
+      <div><span class="key">W</span> 前進 <span class="key">S</span> 後退</div>
+      <div><span class="key">A</span> 左 <span class="key">D</span> 右</div>
+      <div><span class="key">Space</span> パンチ</div>
+    </div>
+    
+    <!-- 勝利メッセージ -->
+    <div id="victory-message">
+      <h1>勝利</h1>
+    </div>
+    
+    <!-- 爆死メッセージ -->
+    <div id="death-message">
+      <h1>爆死</h1>
+    </div>
+    
+    <!-- 技術解説スライド -->
+    <div id="technical-slide">
+      <img src="ASI DIVE 技術解説スライド.png" alt="ASI DIVE 技術解説スライド">
+    </div>
+  </div>
+
+  <!-- Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.js",
+      "gaussian-splats-3d": "https://naruya.github.io/gs-edit/lib/gaussian-splats-3d.module.js",
+      "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm",
+      "gvrm": "https://naruya.github.io/gs-edit/lib/gaussian-vrm.min.js",
+      "@google/genai": "https://esm.sh/@google/genai@1.0.0"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GVRM } from 'gvrm';
+    import { GoogleGenAI } from '@google/genai';
+
+    // ============================================
+    // グローバル変数
+    // ============================================
+    let scene, camera, renderer;
+    let playerAvatar; // 選択されたアバター
+    let selectedPlayerAvatar = null; // 選択されたアバターファイル名
+    let currentAnimation = 'idle';
+    let gameFlowState = 'title'; // title, avatar-select, photo-capture, game
+    let keys = {};
+    let moveSpeed = 0.05;
+    let playerPosition = new THREE.Vector3(0, 0, 10); // ゲートから遠い位置に初期配置
+    let playerRotation = 0;
+    
+    // ゲーム状態
+    let gameState = 'initializing'; // initializing, quiz-input, playing, result
+    let quizData = null;
+    let successImage = null;
+    let failureImage = null;
+    let capturedFaceImage = null;
+    let isQuizSubmitting = false; // クイズ送信処理中フラグ
+    
+    // 3Dオブジェクト
+    let targetObject = null; // フィールドの一番奥のオブジェクト
+    let healthBarFill = null; // 体力ゲージのフィル要素
+    let currentHealth = 100; // 現在の体力（0-100）
+    let wells = []; // 井戸の配列
+    let trashObjects = []; // ゴミオブジェクトの配列（当たり判定用）
+    let waterEffects = []; // 水のエフェクトの配列
+    
+    // パンチ関連
+    let isPunching = false; // パンチ中かどうか
+    let punchCooldown = 0; // パンチのクールダウン（フレーム数）
+    let lastGamepadButton0 = false; // 前フレームの〇ボタンの状態
+    
+    // 飛行物体とレーザー関連
+    let flyingObject = null; // 空を飛び回るオブジェクト
+    let searchlightLaser = null; // 常時発射されるサーチライトレーザー
+    let isPlayerDead = false; // プレイヤーが死亡したかどうか
+    let searchlightAngle = 0; // サーチライトの振り子角度（ラジアン）
+    let searchlightSpeed = 0.02; // サーチライトの振り子速度
+    const SEARCHLIGHT_RANGE = Math.PI / 3; // サーチライトの振り子範囲（±60度）
+    let burnedGround = []; // 焼けた地面のマーカーの配列
+    const WELL_HIDE_RADIUS = 0.6; // 井戸に隠れる判定の半径
+    let laserTimer = 0; // レーザーのタイマー（フレーム数）
+    const LASER_TARGET_TIME = 600; // 10秒後にプレイヤーを照らす（60FPS想定）
+    let randomTargetX = 0; // ランダムな目標X位置
+    let randomTargetZ = 0; // ランダムな目標Z位置
+    let currentLaserTarget = new THREE.Vector3(0, 0, 0); // 現在のビームの目標位置（滑らかな追従用）
+    const LASER_TRACKING_SPEED = 0.02; // ビームがプレイヤーを追従する速度（0-1の値、大きいほど速い）
+    
+    // APIキー
+    let geminiApiKey = '';
+    let whisperApiKey = '';
+    
+    function initSettingsUI() {
+      // localStorageから読み込み
+      geminiApiKey = localStorage.getItem('gemini_api_key') || '';
+      whisperApiKey = localStorage.getItem('whisper_api_key') || '';
+      
+      if (geminiApiKey) document.getElementById('gemini-api-key').value = geminiApiKey;
+      if (whisperApiKey) document.getElementById('whisper-api-key').value = whisperApiKey;
+      
+      updateApiStatus();
+      
+      // 設定ボタン
+      document.getElementById('settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.add('active');
+      });
+      
+      // 閉じるボタン
+      document.getElementById('close-settings').addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.remove('active');
+      });
+      
+      // 保存ボタン
+      document.getElementById('save-settings').addEventListener('click', () => {
+        geminiApiKey = document.getElementById('gemini-api-key').value;
+        whisperApiKey = document.getElementById('whisper-api-key').value;
+        
+        localStorage.setItem('gemini_api_key', geminiApiKey);
+        localStorage.setItem('whisper_api_key', whisperApiKey);
+        
+        updateApiStatus();
+        document.getElementById('settings-modal').classList.remove('active');
+        alert('APIキーを保存しました');
+      });
+    }
+    
+    function updateApiStatus() {
+      const hasKeys = geminiApiKey && whisperApiKey;
+      document.getElementById('api-status').textContent = 
+        hasKeys ? 'API: 設定済み' : 'API: 未設定';
+    }
+    
+    // ============================================
+    // Three.js初期化
+    // ============================================
+    function initThreeJS() {
+      const container = document.getElementById('canvas-container');
+      
+      if (!container) {
+        throw new Error('canvas-container要素が見つかりません');
+      }
+      
+      // 既存のcanvas要素を全て削除（アバター選択画面のcanvasも含む）
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+      
+      // 既存のシーン、レンダラーをクリーンアップ
+      if (scene) {
+        // シーン内のオブジェクトを削除
+        while (scene.children.length > 0) {
+          const obj = scene.children[0];
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(mat => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if (obj.material.map) obj.material.map.dispose();
+              obj.material.dispose();
+            }
+          }
+          scene.remove(obj);
+        }
+      }
+      
+      if (renderer) {
+        try {
+          // レンダラーを完全にクリーンアップ
+          if (renderer.domElement && renderer.domElement.parentNode) {
+            renderer.domElement.parentNode.removeChild(renderer.domElement);
+          }
+          renderer.dispose();
+          // forceContextLossは呼び出さない（ブラウザがブロックする可能性があるため）
+        } catch (e) {
+        }
+        renderer = null;
+      }
+      
+      // WebGLが利用可能かチェック
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        throw new Error('WebGLがサポートされていません。別のブラウザをお試しください。');
+      }
+      
+      // リソース解放のための待機（長めに設定）
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // シーン
+            scene = new THREE.Scene();
+            // 暗い夜の背景（荒廃した世界）
+            scene.background = new THREE.Color(0x0a0a0a);
+            
+            // カメラ（アバターに近い位置に配置）
+            camera = new THREE.PerspectiveCamera(65, width / height, 0.01, 1000);
+            camera.position.set(0, 2, 15); // アバター位置(z=10)の後ろ5ユニット
+            camera.lookAt(0, 0, 10); // アバター方向を向く
+            
+            // レンダラー作成（より安全な設定で）
+            let rendererCreated = false;
+            
+            // 複数の設定で試行
+            const rendererOptions = [
+              { antialias: false, alpha: false, powerPreference: "default" },
+              { antialias: false, alpha: false },
+              { antialias: false }
+            ];
+            
+            for (let i = 0; i < rendererOptions.length; i++) {
+              try {
+                renderer = new THREE.WebGLRenderer(rendererOptions[i]);
+                
+                // コンテキストが実際に作成されたか確認
+                const context = renderer.getContext();
+                if (context && !renderer.domElement) {
+                  throw new Error('レンダラーは作成されましたが、DOM要素がありません');
+                }
+                
+                rendererCreated = true;
+                break;
+              } catch (e) {
+                if (renderer) {
+                  try {
+                    renderer.dispose();
+                  } catch (disposeError) {
+                    // 無視
+                  }
+                  renderer = null;
+                }
+              }
+            }
+            
+            if (!rendererCreated || !renderer) {
+              throw new Error('WebGLコンテキストの作成に失敗しました。ページをリロード（F5キー）してください。');
+            }
+            
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+            
+            // ライト（暗い夜の雰囲気）
+            const ambientLight = new THREE.AmbientLight(0x666666, 0.5); // 環境光を少し明るく
+            scene.add(ambientLight);
+            
+            // 月明かりのような弱い方向光
+            const directionalLight = new THREE.DirectionalLight(0x8899aa, 0.6); // 方向光も少し明るく
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // 赤い緊迫感のある光（モニターからの光）
+            const redLight = new THREE.PointLight(0xff0000, 0.5, 20);
+            redLight.position.set(-8, 3, -8);
+            scene.add(redLight);
+            
+            const redLight2 = new THREE.PointLight(0xff0000, 0.5, 20);
+            redLight2.position.set(8, 3, -8);
+            scene.add(redLight2);
+            
+            // サイバーパンク世界観の要素を追加
+            createCyberpunkAtmosphere();
+            
+            // 地面（荒廃した暗い地面 - 少し明るく）
+            const floorGeometry = new THREE.PlaneGeometry(50, 50);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+              color: 0x3a3a3a, // 少し明るく（0x2a2a2a → 0x3a3a3a）
+              roughness: 0.9,
+              metalness: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            
+            // 走る道（暗い荒廃した道 - 少し明るく）
+            const pathGeometry = new THREE.PlaneGeometry(8, 30);
+            const pathMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a }); // 少し明るく（0x1a1a1a → 0x2a2a2a）
+            const path = new THREE.Mesh(pathGeometry, pathMaterial);
+            path.rotation.x = -Math.PI / 2;
+            path.position.set(0, 0.01, -10); // 地面より少し上に配置
+            scene.add(path);
+            
+            // グリッドを削除（暗い世界なので不要）
+            
+            // リサイズハンドラ（重複登録を避けるため、既存のリスナーを削除してから追加）
+            const resizeHandler = () => {
+              if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+              }
+            };
+            // 既存のリサイズリスナーを削除（もしあれば）
+            window.removeEventListener('resize', resizeHandler);
+            window.addEventListener('resize', resizeHandler);
+            
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, 500); // 500ms待機してリソースを解放（長めに設定）
+      });
+    }
+    
+    // ============================================
+    // フィールドの一番奥にオブジェクトを作成
+    // ============================================
+    async function createTargetObject() {
+      // 既存のオブジェクトを削除
+      if (targetObject) {
+        scene.remove(targetObject);
+        if (targetObject.geometry) targetObject.geometry.dispose();
+        if (targetObject.material) {
+          if (Array.isArray(targetObject.material)) {
+            targetObject.material.forEach(mat => {
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            });
+          } else {
+            if (targetObject.material.map) targetObject.material.map.dispose();
+            targetObject.material.dispose();
+          }
+        }
+        targetObject = null;
+      }
+      
+      try {
+        // テクスチャを読み込む
+        const textureLoader = new THREE.TextureLoader();
+        const bossTexture = await new Promise((resolve, reject) => {
+          textureLoader.load(
+            'ryousi.png',
+            (texture) => {
+              texture.flipY = false;
+              texture.colorSpace = THREE.SRGBColorSpace;
+              resolve(texture);
+            },
+            undefined,
+            (error) => {
+              console.error('テクスチャの読み込みエラー:', error);
+              reject(error);
+            }
+          );
+        });
+        
+        // ボスを四角いオブジェクトとして作成（テクスチャ付き）
+        const bossGeometry = new THREE.BoxGeometry(6, 5, 6); // サイズを2倍に（幅3→6、高さ2.5→5、奥行き3→6）
+        const bossMaterial = new THREE.MeshStandardMaterial({ 
+          map: bossTexture, // テクスチャを適用
+          color: 0xFFFFFF, // 白色（テクスチャの色がそのまま見えるように）
+          emissive: 0x000000, // 発光を無くす
+          emissiveIntensity: 0.0, // 発光強度を0にする
+          roughness: 0.5,
+          metalness: 0.0
+        });
+        const bossMesh = new THREE.Mesh(bossGeometry, bossMaterial);
+        bossMesh.position.set(0, 2.5, -10); // 高さも調整（1.25→2.5）
+        scene.add(bossMesh);
+        
+        targetObject = bossMesh;
+        console.log('✓ ボスをryousi.pngテクスチャ付きの四角いオブジェクトとしてフィールドの一番奥に配置しました');
+      } catch (error) {
+        console.error('ボスのテクスチャ読み込みエラー:', error);
+        // エラーが発生した場合は白いオブジェクトとして作成
+        const bossGeometry = new THREE.BoxGeometry(6, 5, 6); // サイズを2倍に
+        const bossMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0xFFFFFF,
+          emissive: 0xFFFFFF,
+          emissiveIntensity: 0.5 // 発光強度を上げる
+        });
+        const bossMesh = new THREE.Mesh(bossGeometry, bossMaterial);
+        bossMesh.position.set(0, 2.5, -10); // 高さも調整
+        scene.add(bossMesh);
+        
+        targetObject = bossMesh;
+        console.log('✓ ボスを真っ白色の四角いオブジェクトとしてフィールドの一番奥に配置しました（テクスチャ読み込み失敗）');
+      }
+    }
+    
+    // ============================================
+    // 体力ゲージの更新
+    // ============================================
+    function updateHealthBar(health) {
+      currentHealth = Math.max(0, Math.min(100, health)); // 0-100の範囲に制限
+      
+      if (healthBarFill) {
+        healthBarFill.style.width = currentHealth + '%';
+        
+        // 体力に応じて色を変更
+        if (currentHealth > 60) {
+          healthBarFill.style.background = 'linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%)';
+        } else if (currentHealth > 30) {
+          healthBarFill.style.background = 'linear-gradient(90deg, #FFC107 0%, #FF9800 100%)';
+        } else {
+          healthBarFill.style.background = 'linear-gradient(90deg, #F44336 0%, #D32F2F 100%)';
+        }
+      }
+    }
+    
+    // ============================================
+    // 飛行物体の作成
+    // ============================================
+    function createFlyingObject() {
+      // 既存の飛行物体を削除
+      if (flyingObject) {
+        scene.remove(flyingObject);
+        flyingObject.children.forEach(child => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => mat.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        });
+        flyingObject = null;
+      }
+      
+      // 既存のサーチライトレーザーを削除
+      if (searchlightLaser) {
+        scene.remove(searchlightLaser);
+        if (searchlightLaser.geometry) searchlightLaser.geometry.dispose();
+        if (searchlightLaser.material) {
+          if (Array.isArray(searchlightLaser.material)) {
+            searchlightLaser.material.forEach(mat => mat.dispose());
+          } else {
+            searchlightLaser.material.dispose();
+          }
+        }
+        searchlightLaser = null;
+      }
+      
+      const flyingGroup = new THREE.Group();
+      
+      // ドローンの中央ボディ（四角形のボックス）
+      const bodyGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.8);
+      const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFFFFF, // 白色に変更
+        roughness: 0.4,
+        metalness: 0.6,
+        emissive: 0xFFFFFF, // 発光を白に設定
+        emissiveIntensity: 0.3
+      });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      flyingGroup.add(body);
+      
+      // 4つのプロペラアーム（十字型）
+      const armLength = 1.2;
+      const armThickness = 0.05;
+      const armMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFFFFF, // 白色に変更
+        roughness: 0.5,
+        metalness: 0.5,
+        emissive: 0xFFFFFF, // 発光を白に設定
+        emissiveIntensity: 0.2
+      });
+      
+      // 前のアーム
+      const frontArm = new THREE.Mesh(
+        new THREE.BoxGeometry(armLength, armThickness, armThickness),
+        armMaterial
+      );
+      frontArm.position.set(0, 0, armLength / 2);
+      flyingGroup.add(frontArm);
+      
+      // 後ろのアーム
+      const backArm = new THREE.Mesh(
+        new THREE.BoxGeometry(armLength, armThickness, armThickness),
+        armMaterial
+      );
+      backArm.position.set(0, 0, -armLength / 2);
+      flyingGroup.add(backArm);
+      
+      // 左のアーム
+      const leftArm = new THREE.Mesh(
+        new THREE.BoxGeometry(armThickness, armThickness, armLength),
+        armMaterial
+      );
+      leftArm.position.set(-armLength / 2, 0, 0);
+      flyingGroup.add(leftArm);
+      
+      // 右のアーム
+      const rightArm = new THREE.Mesh(
+        new THREE.BoxGeometry(armThickness, armThickness, armLength),
+        armMaterial
+      );
+      rightArm.position.set(armLength / 2, 0, 0);
+      flyingGroup.add(rightArm);
+      
+      // 4つのプロペラ（円盤）
+      const propellerGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.02, 16);
+      const propellerMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFFFFF, // 白色に変更
+        roughness: 0.3,
+        metalness: 0.7,
+        emissive: 0xFFFFFF, // 発光を白に設定
+        emissiveIntensity: 0.2
+      });
+      
+      // 前左プロペラ
+      const frontLeftPropeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+      frontLeftPropeller.rotation.x = Math.PI / 2;
+      frontLeftPropeller.position.set(-armLength / 2, 0.1, armLength / 2);
+      flyingGroup.add(frontLeftPropeller);
+      
+      // 前右プロペラ
+      const frontRightPropeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+      frontRightPropeller.rotation.x = Math.PI / 2;
+      frontRightPropeller.position.set(armLength / 2, 0.1, armLength / 2);
+      flyingGroup.add(frontRightPropeller);
+      
+      // 後左プロペラ
+      const backLeftPropeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+      backLeftPropeller.rotation.x = Math.PI / 2;
+      backLeftPropeller.position.set(-armLength / 2, 0.1, -armLength / 2);
+      flyingGroup.add(backLeftPropeller);
+      
+      // 後右プロペラ
+      const backRightPropeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+      backRightPropeller.rotation.x = Math.PI / 2;
+      backRightPropeller.position.set(armLength / 2, 0.1, -armLength / 2);
+      flyingGroup.add(backRightPropeller);
+      
+      // カメラ/センサー部分（中央上部）
+      const cameraGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+      const cameraMaterial = new THREE.MeshStandardMaterial({
+        color: 0x000000,
+        roughness: 0.2,
+        metalness: 0.9
+      });
+      const camera = new THREE.Mesh(cameraGeometry, cameraMaterial);
+      camera.position.y = 0.25;
+      flyingGroup.add(camera);
+      
+      // LEDライト（前後左右に4つ）
+      const ledGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+      const ledMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00FFFF,
+        emissive: 0x00FFFF,
+        emissiveIntensity: 0.8
+      });
+      
+      const frontLed = new THREE.Mesh(ledGeometry, ledMaterial);
+      frontLed.position.set(0, 0.15, 0.4);
+      flyingGroup.add(frontLed);
+      
+      const backLed = new THREE.Mesh(ledGeometry, ledMaterial);
+      backLed.position.set(0, 0.15, -0.4);
+      flyingGroup.add(backLed);
+      
+      const leftLed = new THREE.Mesh(ledGeometry, ledMaterial);
+      leftLed.position.set(-0.4, 0.15, 0);
+      flyingGroup.add(leftLed);
+      
+      const rightLed = new THREE.Mesh(ledGeometry, ledMaterial);
+      rightLed.position.set(0.4, 0.15, 0);
+      flyingGroup.add(rightLed);
+      
+      // 初期位置（上空）
+      flyingGroup.position.set(0, 8, -5);
+      scene.add(flyingGroup);
+      
+      flyingObject = flyingGroup;
+      console.log('✓ 飛行物体を作成しました');
+      
+      // サーチライトレーザーを作成
+      createSearchlightLaser();
+    }
+    
+    // ============================================
+    // サーチライトレーザーの作成
+    // ============================================
+    function createSearchlightLaser() {
+      if (!flyingObject || searchlightLaser) return;
+      
+      // 地面の位置
+      const groundLevel = 0;
+      const initialHeight = flyingObject.position.y - 0.5;
+      const laserLength = initialHeight - groundLevel;
+      
+      // レーザーのビーム（円錐形 - サーチライトのように広がる）
+      // ConeGeometryは上向きで、先端（小さい半径）が上、底面（大きい半径）が下
+      // サーチライトのように上から下に広がる形状
+      const topRadius = 0.1; // 上部の半径（小さい）
+      const bottomRadius = 2.0; // 下部の半径（大きい - サーチライトのように広がる）
+      // ConeGeometryの第1引数は底面の半径、第2引数は高さ
+      const laserGeometry = new THREE.ConeGeometry(bottomRadius, laserLength, 16, 1, true);
+      const laserMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFF0000,
+        emissive: 0xFF0000,
+        emissiveIntensity: 1.0,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      const laserBeam = new THREE.Mesh(laserGeometry, laserMaterial);
+      
+      // レーザーの位置と回転を設定（下に向ける）
+      // ConeGeometryはデフォルトで上向き（先端が上、底面が下）
+      // サーチライトのように上から下に広がるには、先端を上に、底面を下にする
+      // 位置を調整して、先端を飛行物体の位置に、底面を地面の位置に配置
+      laserBeam.position.copy(flyingObject.position);
+      laserBeam.position.y -= 0.5; // 飛行物体の下
+      laserBeam.position.y -= laserLength / 2; // 中心を飛行物体と地面の中間に配置
+      // 回転は不要（デフォルトで上から下に広がる）
+      // Z軸周りの回転はupdateSearchlightLaserで設定される
+      
+      scene.add(laserBeam);
+      searchlightLaser = laserBeam;
+      
+      console.log('サーチライトレーザーを作成しました');
+    }
+    
+    // ============================================
+    // サーチライトレーザーの更新（飛行物体に追従、当たり判定）
+    // ============================================
+    function updateSearchlightLaser() {
+      if (!flyingObject || !searchlightLaser || isPlayerDead) return;
+      
+      // タイマーを更新
+      laserTimer++;
+      
+      // 振り子の角度を更新
+      searchlightAngle += searchlightSpeed;
+      if (searchlightAngle > SEARCHLIGHT_RANGE || searchlightAngle < -SEARCHLIGHT_RANGE) {
+        searchlightSpeed = -searchlightSpeed;
+      }
+      
+      // レーザーの開始位置（飛行物体の下）
+      const startPosition = new THREE.Vector3();
+      startPosition.copy(flyingObject.position);
+      startPosition.y -= 0.5;
+      
+      // 地面の位置
+      const groundLevel = 0;
+      const distance = startPosition.y - groundLevel;
+      
+      let desiredTargetPosition;
+      
+      // 10秒経過したら必ずプレイヤーを照らす
+      if (laserTimer >= LASER_TARGET_TIME && playerAvatar) {
+        // プレイヤーの位置を目標とする
+        desiredTargetPosition = new THREE.Vector3(
+          playerPosition.x,
+          groundLevel,
+          playerPosition.z
+        );
+        
+        // 現在の目標位置からプレイヤーの位置へ滑らかに補間
+        currentLaserTarget.lerp(desiredTargetPosition, LASER_TRACKING_SPEED);
+      } else {
+        // ドローンの真下の地面に照射し、左右に振る
+        // 振り子の動きに応じて地面での位置を計算
+        // Z軸周りに回転しているので、X方向に移動する
+        const swingDistance = Math.sin(searchlightAngle) * 5; // 左右に5単位振る
+        const groundHitX = startPosition.x + swingDistance;
+        const groundHitZ = startPosition.z; // Z方向は変わらない（下方向に向いているため）
+        
+        desiredTargetPosition = new THREE.Vector3(
+          groundHitX,
+          groundLevel,
+          groundHitZ
+        );
+        
+        // 通常時も滑らかに移動
+        currentLaserTarget.lerp(desiredTargetPosition, LASER_TRACKING_SPEED);
+      }
+      
+      // 実際の目標位置として使用
+      const targetPosition = currentLaserTarget;
+      
+      // レーザーの長さを更新
+      if (searchlightLaser.geometry) {
+        searchlightLaser.geometry.dispose();
+      }
+      const topRadius = 0.1; // 上部の半径（小さい）
+      const bottomRadius = 2.0; // 下部の半径（大きい - サーチライトのように広がる）
+      const newLaserGeometry = new THREE.ConeGeometry(bottomRadius, distance, 16, 1, true);
+      searchlightLaser.geometry = newLaserGeometry;
+      
+      // レーザーの位置を更新（開始位置と目標位置の中点）
+      const midPoint = new THREE.Vector3();
+      midPoint.addVectors(startPosition, targetPosition);
+      midPoint.multiplyScalar(0.5);
+      searchlightLaser.position.copy(midPoint);
+      
+      // レーザーの方向を目標位置に向ける
+      const direction = new THREE.Vector3();
+      direction.subVectors(targetPosition, startPosition);
+      direction.normalize();
+      
+      // ConeGeometryはデフォルトで上向き（Y軸の正の方向、先端が上、底面が下）なので、
+      // サーチライトのように上から下に広がるには、先端を上に、底面を下にする必要がある
+      // 方向ベクトルに合わせて回転させる際、下向きベクトルから方向ベクトルへの回転を適用
+      const down = new THREE.Vector3(0, -1, 0); // 下向き（先端が上、底面が下の状態）
+      const quaternion = new THREE.Quaternion();
+      quaternion.setFromUnitVectors(down, direction);
+      searchlightLaser.quaternion.copy(quaternion);
+      
+      // 地上を焼き尽くすアニメーション（地面に焼けた跡を残す）
+      // 一定間隔で焼けた跡を作成（毎フレームではなく、少し間隔を空ける）
+      if (Math.random() < 0.1) { // 10%の確率で作成（毎フレームではなく）
+        createBurnedGroundMark(targetPosition);
+      }
+      
+      // プレイヤーとの当たり判定（地面での位置を使用）
+      if (playerAvatar && !isPlayerDead) {
+        checkSearchlightHitPlayer(targetPosition);
+      }
+      
+      // 10秒経過したらタイマーをリセット
+      if (laserTimer >= LASER_TARGET_TIME) {
+        laserTimer = 0;
+        // 目標位置をリセット（次のサイクルで滑らかに移動を開始）
+        const resetTarget = new THREE.Vector3(
+          startPosition.x,
+          groundLevel,
+          startPosition.z
+        );
+        currentLaserTarget.copy(resetTarget);
+      }
+    }
+    
+    // ============================================
+    // 地上を焼き尽くすアニメーション（地面に焼けた跡を残す）
+    // ============================================
+    function createBurnedGroundMark(position) {
+      // 既に同じ位置に焼けた跡があるかチェック（重複を避ける）
+      const checkRadius = 0.5;
+      const tooClose = burnedGround.some(mark => {
+        const dist = Math.sqrt(
+          Math.pow(mark.position.x - position.x, 2) +
+          Math.pow(mark.position.z - position.z, 2)
+        );
+        return dist < checkRadius;
+      });
+      
+      if (tooClose) return; // 既に近くに焼けた跡がある場合はスキップ
+      
+      // 焼けた地面のマーカーを作成
+      const burnRadius = 1.5; // 焼けた跡の半径
+      const burnGeometry = new THREE.CircleGeometry(burnRadius, 16);
+      const burnMaterial = new THREE.MeshStandardMaterial({
+        color: 0x330000, // 暗い赤/黒
+        emissive: 0x660000,
+        emissiveIntensity: 0.3,
+        side: THREE.DoubleSide
+      });
+      const burnMark = new THREE.Mesh(burnGeometry, burnMaterial);
+      burnMark.rotation.x = -Math.PI / 2; // 地面に平行にする
+      burnMark.position.set(position.x, 0.01, position.z); // 地面の少し上に配置
+      
+      scene.add(burnMark);
+      
+      // 焼けた跡の情報を保存
+      burnedGround.push({
+        object: burnMark,
+        position: position.clone(),
+        age: 0,
+        maxAge: 300 // 5秒間表示（60FPS想定）
+      });
+    }
+    
+    // ============================================
+    // 焼けた地面のマーカーの更新
+    // ============================================
+    function updateBurnedGroundMarks() {
+      for (let i = burnedGround.length - 1; i >= 0; i--) {
+        const mark = burnedGround[i];
+        mark.age++;
+        
+        // 時間が経つと徐々に暗くなる
+        if (mark.object.material) {
+          const fadeProgress = mark.age / mark.maxAge;
+          mark.object.material.opacity = Math.max(0, 1 - fadeProgress * 0.5);
+          mark.object.material.emissiveIntensity = Math.max(0, 0.3 * (1 - fadeProgress));
+        }
+        
+        // 寿命が尽きたら削除
+        if (mark.age >= mark.maxAge) {
+          scene.remove(mark.object);
+          if (mark.object.geometry) mark.object.geometry.dispose();
+          if (mark.object.material) mark.object.material.dispose();
+          burnedGround.splice(i, 1);
+        }
+      }
+    }
+    
+    // ============================================
+    // プレイヤーが井戸に隠れているかチェック
+    // ============================================
+    function isPlayerHidingInWell() {
+      if (!playerAvatar || wells.length === 0) return false;
+      
+      for (const well of wells) {
+        const distance = playerPosition.distanceTo(well.position);
+        if (distance < WELL_HIDE_RADIUS) {
+          return true; // 井戸に隠れている
+        }
+      }
+      
+      return false; // 井戸に隠れていない
+    }
+    
+    // ============================================
+    // サーチライトとプレイヤーの当たり判定
+    // 注意: ボス（judgeAvatar）には当たり判定が出ないように実装されています
+    // ============================================
+    function checkSearchlightHitPlayer(targetPosition) {
+      if (!playerAvatar || isPlayerDead) return;
+      
+      // 井戸に隠れている場合は当たり判定をスキップ
+      if (isPlayerHidingInWell()) {
+        return;
+      }
+      
+      // レーザーのXZ平面での位置（地面での位置）
+      const laserX = targetPosition.x;
+      const laserZ = targetPosition.z;
+      
+      // プレイヤーのXZ平面での位置
+      const playerX = playerPosition.x;
+      const playerZ = playerPosition.z;
+      
+      // XZ平面での距離を計算
+      const distance = Math.sqrt(
+        Math.pow(laserX - playerX, 2) +
+        Math.pow(laserZ - playerZ, 2)
+      );
+      
+      // レーザーの半径（当たり判定の範囲 - サーチライトの広がりを考慮）
+      const laserRadius = 2.0; // サーチライトの半径に合わせて拡大
+      
+      // プレイヤーがレーザーの範囲内にいるかチェック
+      // ボス（judgeAvatar）はこの関数ではチェックされないため、当たり判定が出ません
+      if (distance < laserRadius) {
+        // プレイヤーがレーザーに当たった
+        console.log('サーチライトがプレイヤーに当たった！');
+        
+        // 即死処理
+        isPlayerDead = true;
+        currentHealth = 0;
+        updateHealthBar(currentHealth);
+        
+        // 「爆死」メッセージを表示
+        showDeathMessage();
+        
+        // Shrugging.fbxアニメーションを再生
+        if (playerAvatar && playerAvatar.changeFBX) {
+          playerAvatar.changeFBX('../fbx/Shrugging.fbx').then(() => {
+            console.log('Shruggingアニメーションを再生しました');
+          }).catch(error => {
+            console.error('Shruggingアニメーションの読み込みエラー:', error);
+          });
+        }
+        
+        // 3秒後にゲームをリセットして最初の画面に戻る
+        setTimeout(async () => {
+          console.log('爆死後、ゲームをリセットして最初の画面に戻ります');
+          await resetGameAfterDeath();
+        }, 3000);
+      }
+    }
+    
+    // ============================================
+    // 飛行物体の移動更新
+    // ============================================
+    function updateFlyingObject() {
+      if (!flyingObject) return;
+      
+      // 8の字を描くように移動
+      const time = Date.now() * 0.001;
+      const radius = 8;
+      const speed = 0.5;
+      
+      // 8の字の軌道
+      flyingObject.position.x = Math.sin(time * speed) * radius;
+      flyingObject.position.z = -5 + Math.cos(time * speed * 2) * 2;
+      flyingObject.position.y = 8 + Math.sin(time * speed * 0.5) * 1; // 上下に揺れる
+      
+      // 回転
+      flyingObject.rotation.y += 0.01;
+      
+      // LEDライトを点滅させる（ドローンのLEDライトは最後の4つの子要素）
+      const ledStartIndex = flyingObject.children.length - 4;
+      flyingObject.children.forEach((child, index) => {
+        if (index >= ledStartIndex && child.material && child.material.emissive) {
+          child.material.emissiveIntensity = 0.5 + Math.sin(time * 3 + (index - ledStartIndex)) * 0.3;
+        }
+      });
+    }
+    
+    // ============================================
+    // 井戸の作成
+    // ============================================
+    function createWells() {
+      // 既存の井戸を削除
+      wells.forEach(well => {
+        if (well.group) {
+          scene.remove(well.group);
+          well.group.children.forEach(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          });
+        }
+      });
+      wells = [];
+      trashObjects = [];
+      waterEffects = [];
+      
+      // 井戸の配置位置（左右に2つずつ、合計4つ）
+      const wellPositions = [
+        { x: -4, z: -3 },   // 左側前
+        { x: -4, z: 3 },    // 左側後
+        { x: 4, z: -3 },    // 右側前
+        { x: 4, z: 3 },     // 右側後
+      ];
+      
+      // 石のテクスチャーを作成する関数
+      function createStoneTexture(size = 256) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // ベースの灰色
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(0, 0, size, size);
+        
+        // 石の模様をランダムに描画
+        for (let i = 0; i < 50; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const radius = 5 + Math.random() * 15;
+          const gray = 100 + Math.random() * 100;
+          
+          ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // さらに細かい模様
+        for (let i = 0; i < 100; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const gray = 70 + Math.random() * 60;
+          
+          ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+          ctx.fillRect(x, y, 2 + Math.random() * 3, 2 + Math.random() * 3);
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 1);
+        return texture;
+      }
+      
+      const stoneTexture = createStoneTexture(256);
+      
+      wellPositions.forEach((pos, index) => {
+        const wellGroup = new THREE.Group();
+        
+        // 井戸の本体（円柱）- 横幅と縦の幅を広げる、明るさを下げる
+        const wellBodyGeometry = new THREE.CylinderGeometry(0.7, 0.8, 1.5, 16);
+        const wellBodyMaterial = new THREE.MeshStandardMaterial({ 
+          map: stoneTexture,
+          color: 0xcccccc, // 明るさを下げる（白からグレーに）
+          emissive: 0x666666, // 発光を下げる
+          emissiveIntensity: 0.3, // 強度を下げる
+          roughness: 0.9,
+          metalness: 0.1
+        });
+        const wellBody = new THREE.Mesh(wellBodyGeometry, wellBodyMaterial);
+        wellBody.position.y = 0.75;
+        wellGroup.add(wellBody);
+        
+        // 井戸の縁（外側のリング）- 横幅を広げる、明るさを下げる
+        const wellRimGeometry = new THREE.TorusGeometry(0.8, 0.08, 8, 16);
+        const wellRimMaterial = new THREE.MeshStandardMaterial({ 
+          map: stoneTexture,
+          color: 0xcccccc, // 明るさを下げる（白からグレーに）
+          emissive: 0x666666, // 発光を下げる
+          emissiveIntensity: 0.3, // 強度を下げる
+          roughness: 0.9,
+          metalness: 0.1
+        });
+        const wellRim = new THREE.Mesh(wellRimGeometry, wellRimMaterial);
+        wellRim.position.y = 1.5;
+        wellRim.rotation.x = Math.PI / 2;
+        wellGroup.add(wellRim);
+        
+        // 井戸の内側（水が見える部分）- 横幅を広げる、明るさMAX
+        const wellInsideGeometry = new THREE.CylinderGeometry(0.65, 0.65, 0.05, 16);
+        const wellInsideMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x00BFFF, // 明るい青（最大の明るさ）
+          emissive: 0x00BFFF, // 発光を最大に
+          emissiveIntensity: 1.0, // 最大の強度
+          roughness: 0.1,
+          metalness: 0.9,
+          transparent: true,
+          opacity: 1.0
+        });
+        const wellInside = new THREE.Mesh(wellInsideGeometry, wellInsideMaterial);
+        wellInside.position.y = 0.025;
+        wellGroup.add(wellInside);
+        
+        // 井戸の上にロープを追加
+        const ropeGeometry = new THREE.CylinderGeometry(0.02, 0.02, 2.0, 8); // 細い円柱でロープを表現
+        const ropeMaterial = new THREE.MeshStandardMaterial({
+          color: 0x8B4513, // 茶色（ロープの色）
+          roughness: 0.9,
+          metalness: 0.1
+        });
+        const rope = new THREE.Mesh(ropeGeometry, ropeMaterial);
+        rope.position.y = 2.0; // 井戸の上から垂らす
+        rope.rotation.z = Math.PI / 12; // 少し傾けて自然な感じに
+        wellGroup.add(rope);
+        
+        // ロープの先端にバケツのようなオブジェクトを追加（オプション）
+        const bucketGeometry = new THREE.CylinderGeometry(0.15, 0.12, 0.2, 8);
+        const bucketMaterial = new THREE.MeshStandardMaterial({
+          color: 0x444444,
+          roughness: 0.7,
+          metalness: 0.3
+        });
+        const bucket = new THREE.Mesh(bucketGeometry, bucketMaterial);
+        bucket.position.y = 0.9; // ロープの先端に配置
+        wellGroup.add(bucket);
+        
+        // 井戸の側にバケツオブジェクトを追加（独立したオブジェクト）
+        const sideBucketGeometry = new THREE.CylinderGeometry(0.2, 0.18, 0.25, 8);
+        const sideBucketMaterial = new THREE.MeshStandardMaterial({
+          color: 0x555555,
+          roughness: 0.8,
+          metalness: 0.2
+        });
+        const sideBucket = new THREE.Mesh(sideBucketGeometry, sideBucketMaterial);
+        sideBucket.position.set(1.0, 0.125, 0); // 井戸の側に配置
+        sideBucket.rotation.z = Math.PI / 6; // 少し傾けて自然な感じに
+        wellGroup.add(sideBucket);
+        
+        // 井戸の位置を設定
+        wellGroup.position.set(pos.x, 0, pos.z);
+        scene.add(wellGroup);
+        
+        // 井戸情報を保存
+        wells.push({
+          group: wellGroup,
+          position: new THREE.Vector3(pos.x, 0, pos.z),
+          isActive: false, // 水があふれているかどうか
+          waterParticles: null // 水のパーティクル
+        });
+      });
+      
+      console.log(`✓ ${wells.length}個の井戸を作成しました`);
+    }
+    
+    // ============================================
+    // ゴミ箱とゴミ袋を作成
+    // ============================================
+    function createTrash() {
+      // 既存のゴミオブジェクトをクリア
+      trashObjects.forEach(trash => {
+        scene.remove(trash);
+        trash.children.forEach(child => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => mat.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        });
+      });
+      trashObjects = [];
+      
+      const trashPositions = [
+        { x: -6, z: -2 },
+        { x: 6, z: -2 },
+        { x: -5, z: 5 },
+        { x: 5, z: 5 },
+        { x: -7, z: 2 },
+        { x: 7, z: 2 },
+        { x: 0, z: -5 },
+        { x: -3, z: 8 },
+        { x: 3, z: 8 },
+        // 中央部に5個追加
+        { x: -2, z: 0 },
+        { x: 2, z: 0 },
+        { x: 0, z: 2 },
+        { x: -1.5, z: -2 },
+        { x: 1.5, z: -2 }
+      ];
+      
+      trashPositions.forEach(pos => {
+        const trashGroup = new THREE.Group();
+        
+        // ゴミ箱（金属製の荒廃した感じ）
+        const trashCanGeometry = new THREE.CylinderGeometry(0.3, 0.35, 0.8, 8);
+        const trashCanMaterial = new THREE.MeshStandardMaterial({
+          color: 0x333333,
+          roughness: 0.8,
+          metalness: 0.3
+        });
+        const trashCan = new THREE.Mesh(trashCanGeometry, trashCanMaterial);
+        trashCan.position.y = 0.4;
+        trashGroup.add(trashCan);
+        
+        // ゴミ袋（不規則な形状）
+        const bagCount = Math.random() * 2 + 1;
+        for (let i = 0; i < bagCount; i++) {
+          const bagGeometry = new THREE.SphereGeometry(0.2 + Math.random() * 0.2, 8, 8);
+          bagGeometry.scale(1, 0.6 + Math.random() * 0.3, 1);
+          const bagMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(0, 0, 0.2 + Math.random() * 0.2),
+            roughness: 0.9
+          });
+          const bag = new THREE.Mesh(bagGeometry, bagMaterial);
+          bag.position.set(
+            (Math.random() - 0.5) * 0.5,
+            0.3 + Math.random() * 0.3,
+            (Math.random() - 0.5) * 0.5
+          );
+          bag.rotation.set(
+            Math.random() * Math.PI * 0.3,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 0.3
+          );
+          trashGroup.add(bag);
+        }
+        
+        trashGroup.position.set(pos.x, 0, pos.z);
+        scene.add(trashGroup);
+        trashObjects.push(trashGroup); // 当たり判定用に配列に追加
+      });
+      
+      console.log('✓ ゴミ箱とゴミ袋を作成しました');
+    }
+    
+    // ============================================
+    // 荒廃した建物を作成
+    // ============================================
+    function createRuinedBuildings() {
+      const buildingPositions = [
+        { x: -12, z: -8, width: 3, height: 4, depth: 3 },
+        { x: 12, z: -8, width: 3, height: 5, depth: 3 },
+        { x: -10, z: 10, width: 4, height: 3, depth: 4 },
+        { x: 10, z: 10, width: 4, height: 6, depth: 4 }
+      ];
+      
+      buildingPositions.forEach(pos => {
+        const buildingGroup = new THREE.Group();
+        
+        // 建物の本体（荒廃したコンクリート）
+        const buildingGeometry = new THREE.BoxGeometry(pos.width, pos.height, pos.depth);
+        const buildingMaterial = new THREE.MeshStandardMaterial({
+          color: 0x3a3a3a,
+          roughness: 0.9,
+          metalness: 0.1
+        });
+        const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+        building.position.y = pos.height / 2;
+        buildingGroup.add(building);
+        
+        // 壊れた部分（不規則な形状）
+        const damageCount = Math.floor(Math.random() * 3) + 2;
+        for (let i = 0; i < damageCount; i++) {
+          const damageGeometry = new THREE.BoxGeometry(
+            pos.width * (0.2 + Math.random() * 0.3),
+            pos.height * (0.1 + Math.random() * 0.3),
+            pos.depth * (0.2 + Math.random() * 0.3)
+          );
+          const damageMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            roughness: 0.9
+          });
+          const damage = new THREE.Mesh(damageGeometry, damageMaterial);
+          damage.position.set(
+            (Math.random() - 0.5) * pos.width * 0.8,
+            (Math.random() - 0.5) * pos.height * 0.8 + pos.height / 2,
+            (Math.random() - 0.5) * pos.depth * 0.8
+          );
+          buildingGroup.add(damage);
+        }
+        
+        // 窓（暗い、一部が壊れている）
+        const windowCount = Math.floor(Math.random() * 4) + 2;
+        for (let i = 0; i < windowCount; i++) {
+          const windowGeometry = new THREE.PlaneGeometry(0.5, 0.8);
+          const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            emissive: 0x110000,
+            emissiveIntensity: 0.3
+          });
+          const window = new THREE.Mesh(windowGeometry, windowMaterial);
+          window.position.set(
+            (Math.random() - 0.5) * pos.width * 0.8,
+            Math.random() * pos.height * 0.6 + pos.height * 0.2,
+            pos.depth / 2 + 0.01
+          );
+          buildingGroup.add(window);
+        }
+        
+        buildingGroup.position.set(pos.x, 0, pos.z);
+        scene.add(buildingGroup);
+      });
+      
+      console.log('✓ 荒廃した建物を作成しました');
+    }
+    
+    // ============================================
+    // モニターを作成（ウェブカメラ映像表示用）
+    // ============================================
+    let monitorLeft = null;
+    let monitorRight = null;
+    let videoTexture1 = null;
+    let videoTexture2 = null;
+    let video1 = null;
+    let video2 = null;
+    
+    // サイバーパンク世界観の要素
+    let rainParticles = null; // 雨のパーティクル
+    let neonLights = []; // ネオンライトの配列
+    let ambientSounds = []; // 環境音の配列
+    
+    // オープニング映像とサウンド
+    let openingVideo1 = null;
+    let openingVideo2 = null;
+    let openingVideoElement1 = null;
+    let openingVideoElement2 = null;
+    let openingPlaying = false;
+    let openingPlayedOnce = false; // オープニング映像が一度流れたかどうか
+    
+    // エンディング映像
+    let endingVideoElement = null;
+    let endingPlaying = false;
+    let backSound = null;
+    let backSoundAudio = null;
+    
+    async function createMonitors() {
+      // 左側のモニター
+      const monitorGroupLeft = new THREE.Group();
+      
+      // モニターのフレーム（赤黒い光を出す）- 大きくする
+      const frameGeometry = new THREE.BoxGeometry(5, 3.5, 0.3);
+      const frameMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 0.5,
+        roughness: 0.3,
+        metalness: 0.7
+      });
+      const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+      monitorGroupLeft.add(frame);
+      
+      // モニターの画面（ウェブカメラ映像用）- 大きくする、明るくする
+      const screenGeometry = new THREE.PlaneGeometry(4.5, 3.2);
+      const screenMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff, // 白に変更して映像が見えるように
+        emissive: 0xffffff, // 発光を白に
+        emissiveIntensity: 1.0
+      });
+      const screen = new THREE.Mesh(screenGeometry, screenMaterial);
+      screen.position.z = 0.16;
+      monitorGroupLeft.add(screen);
+      
+      // ウェブカメラ1の映像を取得（USB1を使用）
+      try {
+        // 利用可能なデバイスを列挙
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        console.log('利用可能なビデオデバイス:', videoDevices);
+        
+        // USB0とUSB1を特定（デバイス名やラベルで判定）
+        let deviceId1 = null;
+        let deviceId2 = null;
+        
+        // デバイス名やラベルにusb0, usb1が含まれるものを探す
+        for (const device of videoDevices) {
+          const label = device.label?.toLowerCase() || '';
+          const deviceId = device.deviceId?.toLowerCase() || '';
+          
+          if ((label.includes('usb0') || deviceId.includes('usb0')) && !deviceId1) {
+            deviceId1 = device.deviceId;
+            console.log('USB0デバイスを検出:', device.label);
+          } else if ((label.includes('usb1') || deviceId.includes('usb1')) && !deviceId2) {
+            deviceId2 = device.deviceId;
+            console.log('USB1デバイスを検出:', device.label);
+          }
+        }
+        
+        // 見つからない場合はフォールバック（最初の2つのデバイスを使用）
+        if (!deviceId1 && videoDevices.length >= 1) {
+          deviceId1 = videoDevices[0]?.deviceId || null;
+        }
+        if (!deviceId2 && videoDevices.length >= 2) {
+          deviceId2 = videoDevices[1]?.deviceId || null;
+        }
+        
+        const constraints1 = deviceId1 ? {
+          video: { deviceId: { exact: deviceId1 } }
+        } : {
+          video: true // フォールバック
+        };
+        
+        const stream1 = await navigator.mediaDevices.getUserMedia(constraints1);
+        video1 = document.createElement('video');
+        video1.srcObject = stream1;
+        video1.autoplay = true;
+        video1.playsInline = true;
+        video1.play();
+        
+        videoTexture1 = new THREE.VideoTexture(video1);
+        videoTexture1.flipY = true; // 上下反転
+        screenMaterial.map = videoTexture1;
+        screenMaterial.emissiveMap = videoTexture1;
+        screenMaterial.color.setHex(0xFFAAAA); // 赤みがかった色に設定（緊迫感を演出）
+        screenMaterial.emissive.setHex(0xFFAAAA); // 発光も赤みがかった色に
+        // 映像を左右反転
+        screen.scale.x = -1;
+      } catch (error) {
+        console.warn('ウェブカメラ1の取得に失敗:', error);
+        screenMaterial.color.setHex(0x888888);
+        screenMaterial.emissive.setHex(0x888888);
+      }
+      
+      monitorGroupLeft.position.set(-8, 3, -8);
+      monitorGroupLeft.rotation.y = Math.PI * 0.25;
+      scene.add(monitorGroupLeft);
+      monitorLeft = monitorGroupLeft;
+      
+      // 右側のモニター
+      const monitorGroupRight = new THREE.Group();
+      
+      const frame2 = new THREE.Mesh(frameGeometry, frameMaterial.clone());
+      monitorGroupRight.add(frame2);
+      
+      // 右側のモニターの画面マテリアル（明るくする）
+      const screenMaterial2 = new THREE.MeshStandardMaterial({
+        color: 0xffffff, // 白に変更
+        emissive: 0xffffff, // 発光を白に
+        emissiveIntensity: 1.0
+      });
+      const screen2 = new THREE.Mesh(screenGeometry, screenMaterial2);
+      screen2.position.z = 0.16;
+      monitorGroupRight.add(screen2);
+      
+      // ウェブカメラ2の映像を取得（USB1を使用）
+      try {
+        // 利用可能なデバイスを列挙
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        // USB0とUSB1を特定（デバイス名やラベルで判定）
+        let deviceId2 = null;
+        
+        // デバイス名やラベルにusb0, usb1が含まれるものを探す
+        for (const device of videoDevices) {
+          const label = device.label?.toLowerCase() || '';
+          const deviceId = device.deviceId?.toLowerCase() || '';
+          
+          if ((label.includes('usb1') || deviceId.includes('usb1')) && !deviceId2) {
+            deviceId2 = device.deviceId;
+            console.log('USB1デバイスを検出:', device.label);
+          }
+        }
+        
+        // 見つからない場合はフォールバック（2番目のデバイスを使用）
+        if (!deviceId2 && videoDevices.length >= 2) {
+          deviceId2 = videoDevices[1]?.deviceId || null;
+        }
+        
+        const constraints2 = deviceId2 ? {
+          video: { deviceId: { exact: deviceId2 } }
+        } : {
+          video: true // フォールバック
+        };
+        
+        const stream2 = await navigator.mediaDevices.getUserMedia(constraints2);
+        video2 = document.createElement('video');
+        video2.srcObject = stream2;
+        video2.autoplay = true;
+        video2.playsInline = true;
+        video2.play();
+        
+        videoTexture2 = new THREE.VideoTexture(video2);
+        videoTexture2.flipY = true; // 上下反転
+        screen2.material.map = videoTexture2;
+        screen2.material.emissiveMap = videoTexture2;
+        screen2.material.color.setHex(0xFFAAAA); // 赤みがかった色に設定（緊迫感を演出）
+        screen2.material.emissive.setHex(0xFFAAAA); // 発光も赤みがかった色に
+        // 映像を左右反転
+        screen2.scale.x = -1;
+      } catch (error) {
+        console.warn('ウェブカメラ2の取得に失敗:', error);
+        screen2.material.color.setHex(0x888888);
+        screen2.material.emissive.setHex(0x888888);
+      }
+      
+      monitorGroupRight.position.set(8, 3, -8);
+      monitorGroupRight.rotation.y = -Math.PI * 0.25;
+      scene.add(monitorGroupRight);
+      monitorRight = monitorGroupRight;
+      
+      console.log('✓ モニターを作成しました');
+    }
+    
+    // ============================================
+    // サイバーパンク世界観の雰囲気を作成
+    // ============================================
+    function createCyberpunkAtmosphere() {
+      // 1. 雨のエフェクト
+      createRain();
+      
+      // 2. ネオンライトとネオンサイン
+      createNeonLights();
+      
+      // 3. 湿った路面の表現（反射を追加）
+      updateWetFloor();
+      
+      // 4. 環境音を開始
+      startAmbientSounds();
+    }
+    
+    // ============================================
+    // 雨のエフェクトを作成
+    // ============================================
+    function createRain() {
+      const rainCount = 5000;
+      const rainGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(rainCount * 3);
+      const velocities = new Float32Array(rainCount * 3);
+      
+      for (let i = 0; i < rainCount; i++) {
+        const i3 = i * 3;
+        // ランダムな位置
+        positions[i3] = (Math.random() - 0.5) * 100;
+        positions[i3 + 1] = Math.random() * 50 + 10;
+        positions[i3 + 2] = (Math.random() - 0.5) * 100;
+        
+        // 落下速度
+        velocities[i3] = (Math.random() - 0.5) * 0.1;
+        velocities[i3 + 1] = -2 - Math.random() * 3;
+        velocities[i3 + 2] = (Math.random() - 0.5) * 0.1;
+      }
+      
+      rainGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      rainGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+      
+      const rainMaterial = new THREE.PointsMaterial({
+        color: 0x88aaff,
+        size: 0.1,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+      });
+      
+      rainParticles = new THREE.Points(rainGeometry, rainMaterial);
+      scene.add(rainParticles);
+      
+      console.log('✓ 雨のエフェクトを作成しました');
+    }
+    
+    // ============================================
+    // ネオンライトとネオンサインを作成
+    // ============================================
+    function createNeonLights() {
+      // ネオンサインの位置
+      const neonPositions = [
+        { x: -10, y: 4, z: -5, color: 0xff00ff, text: 'ASI' },
+        { x: 10, y: 4, z: -5, color: 0x00ffff, text: 'WATCH' },
+        { x: -12, y: 3, z: 5, color: 0xff0088, text: 'ZONE' },
+        { x: 12, y: 3, z: 5, color: 0x88ff00, text: 'ALERT' }
+      ];
+      
+      neonPositions.forEach(pos => {
+        // ネオンライト（点光源）
+        const neonLight = new THREE.PointLight(pos.color, 1.5, 15);
+        neonLight.position.set(pos.x, pos.y, pos.z);
+        scene.add(neonLight);
+        neonLights.push(neonLight);
+        
+        // ネオンサイン（発光する板）
+        const signGeometry = new THREE.PlaneGeometry(2, 0.8);
+        const signMaterial = new THREE.MeshStandardMaterial({
+          color: pos.color,
+          emissive: pos.color,
+          emissiveIntensity: 1.0,
+          transparent: true,
+          opacity: 0.9
+        });
+        const sign = new THREE.Mesh(signGeometry, signMaterial);
+        sign.position.set(pos.x, pos.y, pos.z);
+        sign.lookAt(camera.position);
+        scene.add(sign);
+        neonLights.push(sign);
+      });
+      
+      // 建物の窓から漏れるネオンの光
+      for (let i = 0; i < 20; i++) {
+        const windowLight = new THREE.PointLight(
+          new THREE.Color().setHSL(Math.random(), 0.8, 0.5),
+          0.8,
+          10
+        );
+        windowLight.position.set(
+          (Math.random() - 0.5) * 30,
+          2 + Math.random() * 8,
+          (Math.random() - 0.5) * 30
+        );
+        scene.add(windowLight);
+        neonLights.push(windowLight);
+      }
+      
+      console.log('✓ ネオンライトを作成しました');
+    }
+    
+    // ============================================
+    // 湿った路面の表現（反射を追加）
+    // ============================================
+    function updateWetFloor() {
+      // 地面のマテリアルを更新して反射を追加（雨で濡れた感じ）
+      scene.traverse((object) => {
+        if (object.isMesh && object.material) {
+          // 地面と道を特定（色で判定）
+          const colorHex = object.material.color ? object.material.color.getHex() : null;
+          if (colorHex === 0x2a2a2a || colorHex === 0x1a1a1a) {
+            object.material.roughness = 0.2; // 反射を強く（濡れた路面）
+            object.material.metalness = 0.2;
+            // 少し光沢を追加
+            if (!object.material.envMap) {
+              object.material.envMapIntensity = 0.5;
+            }
+          }
+        }
+      });
+    }
+    
+    // ============================================
+    // 環境音を開始（ノイズ音は削除）
+    // ============================================
+    function startAmbientSounds() {
+      // ノイズ音（雨音）は削除
+      // バックサウンドはゲーム開始時に別途再生される
+      console.log('✓ 環境音の設定をスキップしました（ノイズ音削除）');
+    }
+    
+    // ============================================
+    // 雨のアニメーション更新
+    // ============================================
+    function updateRain() {
+      if (!rainParticles) return;
+      
+      const positions = rainParticles.geometry.attributes.position.array;
+      const velocities = rainParticles.geometry.attributes.velocity.array;
+      
+      for (let i = 0; i < positions.length; i += 3) {
+        // 位置を更新
+        positions[i] += velocities[i];
+        positions[i + 1] += velocities[i + 1];
+        positions[i + 2] += velocities[i + 2];
+        
+        // 地面に落ちたら上に戻す
+        if (positions[i + 1] < 0) {
+          positions[i] = (Math.random() - 0.5) * 100;
+          positions[i + 1] = 50 + Math.random() * 20;
+          positions[i + 2] = (Math.random() - 0.5) * 100;
+        }
+      }
+      
+      rainParticles.geometry.attributes.position.needsUpdate = true;
+    }
+    
+    // ============================================
+    // ネオンライトの点滅アニメーション
+    // ============================================
+    function updateNeonLights() {
+      const time = Date.now() * 0.001;
+      
+      neonLights.forEach((light, index) => {
+        if (light.isPointLight) {
+          // 点光源の強度をランダムに変化
+          light.intensity = 1.0 + Math.sin(time * 2 + index) * 0.3;
+        } else if (light.isMesh && light.material.emissive) {
+          // ネオンサインの輝度を変化
+          light.material.emissiveIntensity = 0.8 + Math.sin(time * 1.5 + index) * 0.2;
+          
+          // ネオンサインが常にカメラを向くように
+          if (camera) {
+            light.lookAt(camera.position);
+          }
+        }
+      });
+    }
+    
+    // ============================================
+    // 井戸との相互作用チェック
+    // ============================================
+    function checkWellInteraction() {
+      const interactionDistance = 2.0; // 井戸との相互作用距離
+      
+      wells.forEach((well, index) => {
+        const distance = playerPosition.distanceTo(well.position);
+        
+        if (distance < interactionDistance) {
+          // 既に水があふれている場合はスキップ
+          if (well.isActive) {
+            return;
+          }
+          
+          console.log(`井戸${index + 1}に近づきました！水があふれ出します`);
+          activateWell(well, index);
+        }
+      });
+    }
+    
+    // ============================================
+    // 井戸を活性化（水があふれ出す）
+    // ============================================
+    function activateWell(well, index) {
+      well.isActive = true;
+      
+      // 水のパーティクルシステムを作成
+      const particleCount = 200;
+      const particles = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const velocities = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      
+      // パーティクルの初期位置と速度を設定
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        
+        // 初期位置（井戸の中心から）
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 0.3 + Math.random() * 0.3; // 井戸のサイズに合わせて調整
+        positions[i3] = well.position.x + Math.cos(angle) * radius;
+        positions[i3 + 1] = well.position.y + 0.05; // 井戸の高さに合わせて調整
+        positions[i3 + 2] = well.position.z + Math.sin(angle) * radius;
+        
+        // 速度（上方向と外側方向）
+        const speed = 0.3 + Math.random() * 0.4;
+        velocities[i3] = (Math.random() - 0.5) * 0.2; // X方向のランダム
+        velocities[i3 + 1] = speed; // Y方向（上）
+        velocities[i3 + 2] = (Math.random() - 0.5) * 0.2; // Z方向のランダム
+        
+        // 色（水色）
+        colors[i3] = 0.2 + Math.random() * 0.3;     // R
+        colors[i3 + 1] = 0.6 + Math.random() * 0.3;   // G
+        colors[i3 + 2] = 0.9 + Math.random() * 0.1;   // B
+      }
+      
+      particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      
+      // パーティクルマテリアル
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.1, // 井戸のサイズに合わせて小さく
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      
+      const particleSystem = new THREE.Points(particles, particleMaterial);
+      scene.add(particleSystem);
+      
+      // 水のエフェクト情報を保存
+      const waterEffect = {
+        particles: particleSystem,
+        velocities: velocities,
+        startTime: Date.now(),
+        duration: 5000, // 5秒間
+        well: well
+      };
+      
+      waterEffects.push(waterEffect);
+      well.waterParticles = particleSystem;
+      
+      // 5秒後に自動的に停止
+      setTimeout(() => {
+        // wells配列からindexを見つける
+        const wellIndex = wells.findIndex(w => w === well);
+        deactivateWell(well, wellIndex);
+      }, waterEffect.duration);
+    }
+    
+    // ============================================
+    // 井戸を非活性化（水のエフェクトを停止）
+    // ============================================
+    function deactivateWell(well, effectIndex) {
+      well.isActive = false;
+      
+      if (well.waterParticles) {
+        scene.remove(well.waterParticles);
+        well.waterParticles.geometry.dispose();
+        well.waterParticles.material.dispose();
+        well.waterParticles = null;
+      }
+      
+      // waterEffectsからも削除
+      if (effectIndex !== undefined && effectIndex >= 0 && effectIndex < waterEffects.length) {
+        waterEffects.splice(effectIndex, 1);
+      } else {
+        // effectIndexが無効な場合は、wellで検索
+        const index = waterEffects.findIndex(effect => effect.well === well);
+        if (index !== -1) {
+          waterEffects.splice(index, 1);
+        }
+      }
+      
+      // wells配列からindexを見つける（ログ用）
+      const wellIndex = wells.findIndex(w => w === well);
+      if (wellIndex !== -1) {
+        console.log(`井戸${wellIndex + 1}の水が止まりました`);
+      }
+    }
+    
+    // ============================================
+    // 水のエフェクト更新
+    // ============================================
+    function updateWaterEffects() {
+      const gravity = -0.01; // 重力
+      const currentTime = Date.now();
+      
+      // 逆順にループして削除しても安全にする
+      for (let i = waterEffects.length - 1; i >= 0; i--) {
+        const effect = waterEffects[i];
+        const elapsed = currentTime - effect.startTime;
+        
+        // 時間が経過したら削除
+        if (elapsed > effect.duration) {
+          deactivateWell(effect.well, i);
+          continue;
+        }
+        
+        const positions = effect.particles.geometry.attributes.position.array;
+        const velocities = effect.velocities;
+        
+        // 各パーティクルを更新
+        for (let j = 0; j < positions.length; j += 3) {
+          // 速度を更新（重力を適用）
+          velocities[j + 1] += gravity; // Y方向に重力
+          
+          // 位置を更新
+          positions[j] += velocities[j];
+          positions[j + 1] += velocities[j + 1];
+          positions[j + 2] += velocities[j + 2];
+          
+          // 地面に落ちたらリセット（井戸から再び噴出）
+          if (positions[j + 1] < effect.well.position.y + 0.05) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 0.15 + Math.random() * 0.2; // 井戸のサイズに合わせて小さく
+            positions[j] = effect.well.position.x + Math.cos(angle) * radius;
+            positions[j + 1] = effect.well.position.y + 0.05; // 井戸の高さに合わせて調整
+            positions[j + 2] = effect.well.position.z + Math.sin(angle) * radius;
+            
+            const speed = 0.3 + Math.random() * 0.4;
+            velocities[j] = (Math.random() - 0.5) * 0.2;
+            velocities[j + 1] = speed;
+            velocities[j + 2] = (Math.random() - 0.5) * 0.2;
+          }
+        }
+        
+        // 位置属性を更新
+        effect.particles.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+    
+    // ============================================
+    // GVRMアバター読み込み
+    // ============================================
+    async function loadAvatars() {
+      try {
+        updateStatus('アバター読み込み中...');
+        
+        if (!selectedPlayerAvatar) {
+          throw new Error('アバターが選択されていません');
+        }
+        
+        // プレイヤーアバター（選択されたもの）
+        const playerGvrmPath = `../gvrm/${selectedPlayerAvatar}.gvrm`;
+        playerAvatar = await GVRM.load(playerGvrmPath, scene, camera, renderer, `${selectedPlayerAvatar}.gvrm`);
+        playerAvatar.character.currentVrm.scene.position.set(0, 0, 10); // ゲートから遠い位置に配置
+        
+        // キャラクターの大きさを1.5倍にする
+        playerAvatar.character.currentVrm.scene.scale.set(1.5, 1.5, 1.5);
+        
+        await playerAvatar.changeFBX('../fbx/Idle.fbx');
+        
+        // 出題者アバター（選択されなかった方）は削除
+        // judgeAvatarは使用しない
+        
+        updateStatus('アバター読み込み完了');
+        document.getElementById('avatar-status').textContent = `アバター: ${selectedPlayerAvatar} (プレイヤー)`;
+        
+        return true;
+      } catch (error) {
+        console.error('アバター読み込みエラー:', error);
+        updateStatus('アバター読み込みエラー');
+        return false;
+      }
+    }
+    
+    // ============================================
+    // ボスのテクスチャを適用
+    // ============================================
+    async function applyBossTexture(avatar) {
+      if (!avatar || !avatar.character || !avatar.character.currentVrm) {
+        console.error('アバターが正しく読み込まれていません');
+        return;
+      }
+      
+      try {
+        // テクスチャを読み込む
+        const textureLoader = new THREE.TextureLoader();
+        const bossTexture = await new Promise((resolve, reject) => {
+          textureLoader.load(
+            'ryousi.png',
+            (texture) => {
+              texture.flipY = false; // VRMモデル用にflipYをfalseに設定
+              texture.colorSpace = THREE.SRGBColorSpace; // 色空間を設定
+              resolve(texture);
+            },
+            undefined,
+            (error) => {
+              console.error('テクスチャの読み込みエラー:', error);
+              reject(error);
+            }
+          );
+        });
+        
+        // VRMモデルのすべてのSkinnedMeshを取得
+        const vrmScene = avatar.character.currentVrm.scene;
+        vrmScene.traverse((object) => {
+          if (object.isSkinnedMesh && object.material) {
+            // マテリアルが配列の場合と単一の場合を処理
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            
+            materials.forEach((material) => {
+              if (material) {
+                // マテリアルタイプに関係なくテクスチャを適用
+                // VRMのマテリアルは通常MeshStandardMaterialまたはMeshBasicMaterial
+                if (material.isMeshStandardMaterial || material.isMeshBasicMaterial) {
+                  // 既存のテクスチャを破棄
+                  if (material.map) {
+                    material.map.dispose();
+                  }
+                  
+                  // 新しいテクスチャを適用
+                  material.map = bossTexture;
+                  
+                  // 色を調整してテクスチャが見えるようにする（明るくする）
+                  material.color.setHex(0xFFFFFF); // 白色に設定してテクスチャの色がそのまま見えるように
+                  material.emissive.setHex(0xFFFFFF); // 発光を白に設定して明るくする
+                  material.emissiveIntensity = 0.5; // 発光強度を設定して明るくする
+                  
+                  // マテリアルを更新
+                  material.needsUpdate = true;
+                } else {
+                  // その他のマテリアルタイプの場合も試行
+                  if (material.map !== undefined) {
+                    if (material.map) {
+                      material.map.dispose();
+                    }
+                    material.map = bossTexture;
+                    material.needsUpdate = true;
+                  }
+                }
+              }
+            });
+            
+            // マテリアルを更新
+            if (Array.isArray(object.material)) {
+              object.material.forEach(mat => {
+                if (mat) mat.needsUpdate = true;
+              });
+            } else {
+              if (object.material) object.material.needsUpdate = true;
+            }
+          }
+        });
+        
+        console.log('✓ ボスのテクスチャをryousi.pngに変更しました');
+      } catch (error) {
+        console.error('ボスのテクスチャ適用エラー:', error);
+        // エラーが発生した場合でも、色を変更して視認性を向上させる
+        try {
+          const vrmScene = avatar.character.currentVrm.scene;
+          vrmScene.traverse((object) => {
+            if (object.isSkinnedMesh && object.material) {
+              const materials = Array.isArray(object.material) ? object.material : [object.material];
+              materials.forEach((material) => {
+                if (material) {
+                  // テクスチャが見えない場合、色を変更して視認性を向上
+                  material.color.setHex(0xFFD700); // 金色に設定
+                  material.emissive.setHex(0xFFD700); // 発光も金色に
+                  material.emissiveIntensity = 0.3;
+                  material.needsUpdate = true;
+                }
+              });
+            }
+          });
+          console.log('テクスチャ読み込み失敗のため、色を変更しました');
+        } catch (colorError) {
+          console.error('色の変更エラー:', colorError);
+        }
+      }
+    }
+    
+    // ============================================
+    // Whisper API連携（将来的な実装用、現在はコメントアウト）
+    // ============================================
+    /*
+    async function recordAndTranscribe() {
+      if (!whisperApiKey) {
+        alert('Whisper APIキーが設定されていません');
+        return null;
+      }
+      
+      return new Promise((resolve, reject) => {
+        mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          
+          // WebMをWAVに変換（簡易版）
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'audio.webm');
+          formData.append('model', 'whisper-1');
+          formData.append('language', 'ja');
+          
+          try {
+            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${whisperApiKey}`,
+              },
+              body: formData
+            });
+            
+            if (!response.ok) {
+              throw new Error('Whisper APIエラー: ' + response.statusText);
+            }
+            
+            const data = await response.json();
+            resolve(data.text);
+          } catch (error) {
+            console.error('Whisper APIエラー:', error);
+            reject(error);
+          }
+        };
+        
+        mediaRecorder.start();
+        document.getElementById('record-btn').classList.add('recording');
+        document.getElementById('record-status').textContent = '録音中...';
+        
+        // 5秒で自動停止（または手動停止）
+        setTimeout(() => {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            document.getElementById('record-btn').classList.remove('recording');
+            document.getElementById('record-status').textContent = '音声認識中...';
+          }
+        }, 5000);
+      });
+    }
+    */
+    
+    // ============================================
+    // Gemini 2.5 Pro API連携
+    // ============================================
+    async function generateQuiz(questionText) {
+      if (!geminiApiKey) {
+        alert('Gemini APIキーが設定されていません');
+        return null;
+      }
+      
+      try {
+        const ai = new GoogleGenAI({
+          apiKey: geminiApiKey,
+        });
+        
+        const prompt = `以下の音声入力されたクイズを解釈して、以下のJSON形式で返してください。
+
+{
+  "question_text": "（審査員の音声を整形した問題文）",
+  "correct_answer": true or false,
+  "success_prompt": "（テーマと正解を反映したNano-banana用プロンプト。例: '喜びに満ちた笑顔、目を細めて笑っている、勝利のポーズ、アニメ風'）",
+  "failure_prompt": "（テーマと不正解を反映したNano-banana用プロンプト。例: 'がっかりした顔、肩を落として、残念そうな表情、アニメ風'）"
+}
+
+音声入力: "${questionText}"
+
+重要なルール:
+- correct_answerは、問題の正解が○（true）か×（false）かを判断してください
+- success_promptとfailure_promptは、審査員Aの顔写真からアニメ風の表情を生成するためのプロンプトです
+- 日本語で返してください
+- JSONのみを返してください（他のテキストは含めない）`;
+        
+        const config = {
+          thinkingConfig: {
+            thinkingBudget: -1,
+          },
+        };
+        
+        const model = 'gemini-2.5-pro';
+        const contents = [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ];
+        
+        const response = await ai.models.generateContentStream({
+          model,
+          config,
+          contents,
+        });
+        
+        let fullText = '';
+        for await (const chunk of response) {
+          if (chunk.text) {
+            fullText += chunk.text;
+          }
+        }
+        
+        // JSON抽出
+        const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonData = JSON.parse(jsonMatch[0]);
+          return jsonData;
+        } else {
+          throw new Error('JSONが見つかりませんでした');
+        }
+      } catch (error) {
+        console.error('Gemini APIエラー:', error);
+        throw error;
+      }
+    }
+    
+    // ============================================
+    // Nano-banana API連携
+    // ============================================
+    async function generateFaceImage(prompt, base64Image) {
+      if (!geminiApiKey) {
+        alert('Gemini APIキーが設定されていません');
+        return null;
+      }
+      
+      if (!base64Image) {
+        console.error('画像データがありません');
+        return null;
+      }
+      
+      try {
+        const ai = new GoogleGenAI({
+          apiKey: geminiApiKey,
+        });
+        
+        // base64データの抽出（data:image/jpeg;base64, または data:image/png;base64, の形式に対応）
+        let imageData;
+        let mimeType = 'image/jpeg';
+        
+        if (base64Image.includes(',')) {
+          const parts = base64Image.split(',');
+          mimeType = parts[0].includes('png') ? 'image/png' : 'image/jpeg';
+          imageData = parts[1];
+        } else {
+          imageData = base64Image; // 既にbase64のみの場合
+        }
+        
+        // base64データの検証
+        if (!imageData || imageData.length < 100) {
+          throw new Error('画像データが不正です');
+        }
+        
+        console.log('画像送信サイズ:', imageData.length, 'bytes, MIME:', mimeType);
+        
+        const config = {
+          responseModalities: ['IMAGE', 'TEXT'],
+          imageConfig: {
+            imageSize: '1K',
+          },
+        };
+        
+        const model = 'gemini-2.5-flash-image';
+        const contents = [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt,
+              },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: imageData,
+                },
+              },
+            ],
+          },
+        ];
+        
+        const response = await ai.models.generateContentStream({
+          model,
+          config,
+          contents,
+        });
+        
+        for await (const chunk of response) {
+          if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
+            const inlineData = chunk.candidates[0].content.parts[0].inlineData;
+            const buffer = Uint8Array.from(atob(inlineData.data || ''), c => c.charCodeAt(0));
+            const blob = new Blob([buffer], { type: inlineData.mimeType || 'image/png' });
+            const imageUrl = URL.createObjectURL(blob);
+            return imageUrl;
+          }
+        }
+        
+        return null;
+      } catch (error) {
+        console.error('Nano-banana APIエラー:', error);
+        console.error('エラーディテール:', error.message);
+        throw error;
+      }
+    }
+    
+    // ============================================
+    // ゲームフロー
+    // ============================================
+    // 3D空間の前にクイズ入力とAI処理を行う（新フロー）
+    async function startQuizInputBeforeGame() {
+      console.log('=== startQuizInputBeforeGame 開始 ===');
+      gameState = 'quiz-input';
+      
+      // クイズ入力パネルを表示（3D空間なしの状態で）
+      const quizInputPanel = document.getElementById('quiz-input-panel');
+      const submitBtn = document.getElementById('submit-quiz-btn');
+      const quizInput = document.getElementById('quiz-text-input');
+      const quizStatus = document.getElementById('quiz-status');
+      
+      console.log('要素チェック:');
+      console.log('- quizInputPanel:', quizInputPanel ? '✓' : '✗');
+      console.log('- submitBtn:', submitBtn ? '✓' : '✗');
+      console.log('- quizInput:', quizInput ? '✓' : '✗');
+      console.log('- quizStatus:', quizStatus ? '✓' : '✗');
+      
+      if (!quizInputPanel || !submitBtn || !quizInput || !quizStatus) {
+        const error = 'クイズ入力に必要な要素が見つかりません';
+        console.error('✗✗✗', error);
+        alert(error);
+        return Promise.reject(new Error(error));
+      }
+      
+      // パネルを表示（CSSクラスでスタイルを管理）
+      quizInputPanel.className = 'ui-panel active';
+      quizInputPanel.style.cssText = '';
+      
+      console.log('✓ クイズ入力パネルを表示');
+      
+      // ボタンを有効化
+      submitBtn.className = 'quiz-submit-btn';
+      submitBtn.disabled = false;
+      console.log('✓ 送信ボタンを有効化');
+      
+      // 入力欄をリセット
+      quizInput.className = 'quiz-textarea';
+      quizInput.disabled = false;
+      quizInput.value = '';
+      quizInput.placeholder = '例: 富士山は日本で一番高い山である';
+      
+      // ステータスをリセット
+      quizStatus.className = 'quiz-status';
+      quizStatus.textContent = '';
+      
+      setTimeout(() => {
+        quizInput.focus();
+        console.log('✓ 入力欄にフォーカス');
+      }, 200);
+      
+      console.log('✓ クイズ入力パネルを表示完了');
+      
+      // クイズ送信処理
+      return new Promise((resolve, reject) => {
+        const handleQuizSubmit = async () => {
+          // 重複実行を防ぐ
+          if (isQuizSubmitting) {
+            console.log('>>> 処理中です。重複実行をスキップ');
+            return;
+          }
+          
+          console.log('>>> handleQuizSubmit 呼び出し');
+          const questionText = quizInput.value.trim();
+          
+          if (!questionText) {
+            quizStatus.textContent = 'クイズを入力してください';
+            quizStatus.className = 'quiz-status error';
+            console.log('✗ クイズが入力されていません');
+            return;
+          }
+          
+          // 処理開始
+          isQuizSubmitting = true;
+          console.log('✓ クイズ入力:', questionText);
+          
+          try {
+            quizStatus.textContent = 'AI処理中...';
+            quizStatus.className = 'quiz-status loading';
+            submitBtn.disabled = true;
+            quizInput.disabled = true;
+            
+            // アバター選択画面の3Dを先に完全に停止（WebGLコンテキストを解放）
+            console.log('>>> アバター選択画面の3Dを停止中...');
+            avatarSelectAnimationRunning = false;
+            if (avatarSelectRenderer) {
+              try {
+                if (avatarSelectRenderer.domElement) {
+                  avatarSelectRenderer.domElement.remove();
+                }
+                avatarSelectRenderer.dispose();
+                // forceContextLossは呼び出さない（ブラウザがブロックする可能性があるため）
+              } catch (e) {
+                console.warn('アバター選択レンダラークリーンアップ時のエラー（無視）:', e);
+              }
+              avatarSelectRenderer = null;
+            }
+            if (avatarSelectScene) {
+              while (avatarSelectScene.children.length > 0) {
+                const obj = avatarSelectScene.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                  if (Array.isArray(obj.material)) {
+                    obj.material.forEach(mat => {
+                      if (mat.map) mat.map.dispose();
+                      mat.dispose();
+                    });
+                  } else {
+                    if (obj.material.map) obj.material.map.dispose();
+                    obj.material.dispose();
+                  }
+                }
+                avatarSelectScene.remove(obj);
+              }
+              avatarSelectScene = null;
+            }
+            console.log('✓ アバター選択画面の3Dを停止完了');
+            
+            // WebGLコンテキスト解放のための待機
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // APIキーの確認
+            if (!geminiApiKey) {
+              throw new Error('Gemini APIキーが設定されていません。右上の歯車アイコンから設定してください。');
+            }
+            
+            // Geminiでクイズ生成
+            console.log('>>> 1. Geminiでクイズ生成開始:', questionText);
+            quizStatus.textContent = '1/3: Geminiでクイズを分析中...';
+            quizData = await generateQuiz(questionText);
+            
+            if (!quizData) {
+              throw new Error('クイズ生成に失敗しました。');
+            }
+            
+            console.log('✓ クイズ生成完了:', quizData);
+            
+            // Nano-bananaで顔画像を生成（2パターン）
+            if (capturedFaceImage && quizData.success_prompt && quizData.failure_prompt) {
+              const successPrompt = `回答者の顔写真を基に、${quizData.success_prompt}`;
+              const failurePrompt = `回答者の顔写真を基に、${quizData.failure_prompt}`;
+              
+              console.log('>>> 2. 正解画像を生成中...');
+              quizStatus.textContent = '2/3: 正解時の顔画像を生成中...';
+              successImage = await generateFaceImage(successPrompt, capturedFaceImage);
+              console.log('✓ 正解画像生成完了');
+              
+              console.log('>>> 3. 不正解画像を生成中...');
+              quizStatus.textContent = '3/3: 不正解時の顔画像を生成中...';
+              failureImage = await generateFaceImage(failurePrompt, capturedFaceImage);
+              console.log('✓ 不正解画像生成完了');
+            }
+            
+            // クイズ入力パネルを非表示
+            quizInputPanel.classList.remove('active');
+            quizInputPanel.style.display = 'none';
+            console.log('✓ クイズ入力パネルを非表示');
+            
+            // ローディング画面を表示して3D空間へ
+            console.log('>>> AI処理完了 → 3D空間初期化へ');
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.remove('hidden');
+            updateStatus('3D空間を準備中...');
+            
+            // 3D空間を初期化してゲーム開始
+            console.log('>>> startGameAfterQuiz 呼び出し');
+            await startGameAfterQuiz();
+            console.log('✓ startGameAfterQuiz 完了');
+            
+            isQuizSubmitting = false; // 正常終了時もフラグをリセット
+            resolve();
+            console.log('✓ Promise resolved');
+          } catch (error) {
+            console.error('✗✗✗ クイズ処理エラー:', error);
+            quizStatus.textContent = 'エラー: ' + error.message;
+            quizStatus.className = 'quiz-status error';
+            submitBtn.disabled = false;
+            quizInput.disabled = false;
+            isQuizSubmitting = false; // エラー時もフラグをリセット
+            // エラーの場合もrejectせずにそのままにする（再試行可能にするため）
+          }
+        };
+        
+        // 単一のイベントリスナーのみ使用（重複を防ぐ）
+        submitBtn.onclick = null;
+        submitBtn.removeEventListener('click', handleQuizSubmit);
+        
+        submitBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleQuizSubmit();
+        }, { once: false });
+        
+        console.log('✓ onclick イベントリスナー設定');
+        
+        // Enterキーでも送信
+        const enterHandler = (e) => {
+          if (e.key === 'Enter' && !submitBtn.disabled) {
+            console.log('>>> Enter キー押下');
+            e.preventDefault();
+            handleQuizSubmit();
+          }
+        };
+        quizInput.addEventListener('keypress', enterHandler);
+        console.log('✓ Enter キーイベントリスナー設定');
+        
+        console.log('✓ イベントリスナー設定完了。ユーザー入力待ち...');
+        console.log('  ボタン要素:', submitBtn);
+        console.log('  ボタンスタイル:', submitBtn.style.cssText);
+        console.log('  ボタンdisabled:', submitBtn.disabled);
+      });
+    }
+    
+    async function startQuizGeneration() {
+      console.log('=== startQuizGeneration 開始 ===');
+      gameState = 'quiz-input';
+      console.log('gameState を quiz-input に設定');
+      
+      // クイズ入力パネルを表示（確実に）
+      const quizInputPanel = document.getElementById('quiz-input-panel');
+      const quizDisplayPanel = document.getElementById('quiz-display-panel');
+      
+      console.log('quiz-input-panel 要素:', quizInputPanel ? '見つかった' : '見つからない');
+      
+      if (quizInputPanel) {
+        // 全ての表示スタイルを強制的に設定
+        quizInputPanel.className = 'ui-panel active';
+        quizInputPanel.style.cssText = `
+          position: fixed !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          z-index: 10000 !important;
+          pointer-events: auto !important;
+          min-width: 400px;
+          max-width: 600px;
+          background: rgba(0, 0, 0, 0.95) !important;
+          backdrop-filter: blur(10px);
+          padding: 30px !important;
+          border-radius: 15px !important;
+          border: 2px solid rgba(76, 175, 80, 0.8) !important;
+          box-shadow: 0 10px 50px rgba(0, 0, 0, 0.9) !important;
+          text-align: center;
+        `;
+        
+        console.log('✓ クイズ入力パネルのスタイルを設定しました');
+        console.log('  - display:', quizInputPanel.style.display);
+        console.log('  - visibility:', quizInputPanel.style.visibility);
+        console.log('  - z-index:', quizInputPanel.style.zIndex);
+        
+        // パネル内のすべての要素も確実に表示
+        const submitBtn = document.getElementById('submit-quiz-btn');
+        const quizInput = document.getElementById('quiz-text-input');
+        const quizStatus = document.getElementById('quiz-status');
+        
+        if (submitBtn) {
+          submitBtn.style.display = 'inline-flex';
+          submitBtn.style.pointerEvents = 'auto';
+          submitBtn.style.cursor = 'pointer';
+          submitBtn.disabled = false;
+          console.log('✓ 送信ボタンを有効化');
+        } else {
+          console.error('✗ submit-quiz-btn が見つかりません');
+        }
+        
+        if (quizInput) {
+          quizInput.style.display = 'block';
+          quizInput.style.visibility = 'visible';
+          quizInput.disabled = false;
+          quizInput.value = ''; // 初期化
+          setTimeout(() => quizInput.focus(), 100); // 少し遅延してフォーカス
+          console.log('✓ テキスト入力欄を有効化');
+        } else {
+          console.error('✗ quiz-text-input が見つかりません');
+        }
+        
+        if (quizStatus) {
+          quizStatus.textContent = '';
+          quizStatus.className = 'quiz-status';
+          console.log('✓ ステータス表示をクリア');
+        }
+        
+        console.log('✓ クイズ入力パネルを表示しました！');
+      } else {
+        console.error('✗✗✗ quiz-input-panel要素が見つかりません！！！');
+      }
+      
+      if (quizDisplayPanel) {
+        quizDisplayPanel.classList.remove('active');
+        quizDisplayPanel.style.display = 'none';
+        console.log('✓ クイズ表示パネルを非表示');
+      }
+      
+      console.log('=== startQuizGeneration 完了 ===');
+      
+      // テキスト入力と送信ボタン
+      const quizInput = document.getElementById('quiz-text-input');
+      const submitBtn = document.getElementById('submit-quiz-btn');
+      
+      const handleQuizSubmit = async () => {
+        const questionText = quizInput.value.trim();
+        
+        if (!questionText) {
+          document.getElementById('quiz-status').textContent = 'クイズを入力してください';
+          return;
+        }
+        
+        try {
+          const statusEl = document.getElementById('quiz-status');
+          statusEl.textContent = 'クイズ生成中...';
+          statusEl.style.color = '#4CAF50';
+          submitBtn.disabled = true;
+          
+          // APIキーの確認
+          if (!geminiApiKey) {
+            throw new Error('Gemini APIキーが設定されていません。右上の歯車アイコンから設定してください。');
+          }
+          
+          // Geminiでクイズ生成
+          updateStatus('クイズ生成中... (Gemini 2.5 Pro)');
+          statusEl.textContent = 'Geminiでクイズを生成中...';
+          console.log('クイズ生成開始:', questionText);
+          
+          quizData = await generateQuiz(questionText);
+          
+          if (!quizData) {
+            throw new Error('クイズ生成に失敗しました。APIキーを確認してください。');
+          }
+          
+          console.log('クイズ生成完了:', quizData);
+          
+          // 問題をモニター1に表示（確実に実行）
+          console.log('問題をモニター1に表示:', quizData.question_text);
+          updateStatus('問題をモニターに表示中...');
+          statusEl.textContent = '問題を表示中...';
+          // updateMonitor1は削除（クイズ要素を削除したため）
+          document.getElementById('quiz-question').textContent = quizData.question_text;
+          
+          // クイズプロンプトを使って顔画像を再生成
+          if (capturedFaceImage && quizData.success_prompt && quizData.failure_prompt) {
+            updateStatus('顔画像を再生成中... (Nano-banana)');
+            statusEl.textContent = '顔画像を再生成中...';
+            const successPrompt = `回答者の顔写真を基に、${quizData.success_prompt}`;
+            const failurePrompt = `回答者の顔写真を基に、${quizData.failure_prompt}`;
+            
+            updateStatus('喜び顔を生成中... (Nano-banana)');
+            statusEl.textContent = '喜び顔を生成中...';
+            successImage = await generateFaceImage(successPrompt, capturedFaceImage);
+            
+            updateStatus('残念顔を生成中... (Nano-banana)');
+            statusEl.textContent = '残念顔を生成中...';
+            failureImage = await generateFaceImage(failurePrompt, capturedFaceImage);
+            
+            console.log('顔画像をクイズプロンプトで再生成完了');
+          }
+          
+          // クイズ入力パネルを非表示にして、クイズ表示パネルを表示
+          const quizInputPanel = document.getElementById('quiz-input-panel');
+          const quizDisplayPanel = document.getElementById('quiz-display-panel');
+          if (quizInputPanel) {
+            quizInputPanel.classList.remove('active');
+            quizInputPanel.style.display = 'none';
+          }
+          if (quizDisplayPanel) {
+            quizDisplayPanel.classList.add('active');
+            quizDisplayPanel.style.display = 'block';
+          }
+          
+          updateStatus('準備完了！WASDキーで移動してください');
+          statusEl.textContent = '';
+          gameState = 'playing';
+          
+          console.log('クイズ生成処理完了。ゲーム開始。');
+        } catch (error) {
+          console.error('クイズ生成エラー:', error);
+          const statusEl = document.getElementById('quiz-status');
+          statusEl.textContent = 'エラー: ' + error.message;
+          statusEl.style.color = '#f44336';
+          submitBtn.disabled = false;
+          updateStatus('エラー: ' + error.message);
+        }
+      };
+      
+      submitBtn.onclick = handleQuizSubmit;
+      
+      // Enterキーでも送信
+      quizInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleQuizSubmit();
+        }
+      });
+      
+      // 将来的な音声入力機能用（コメントアウト）
+      /*
+      // 録音ボタン
+      const recordBtn = document.getElementById('record-btn');
+      recordBtn.onclick = async () => {
+        try {
+          const transcribedText = await recordAndTranscribe();
+          
+          if (!transcribedText) {
+            document.getElementById('quiz-status').textContent = '音声認識に失敗しました';
+            return;
+          }
+          
+          document.getElementById('quiz-status').textContent = `認識: ${transcribedText}`;
+          
+          // Geminiでクイズ生成
+          updateStatus('クイズ生成中...');
+          quizData = await generateQuiz(transcribedText);
+          
+          if (!quizData) {
+            throw new Error('クイズ生成に失敗しました');
+          }
+          
+          // 問題をモニター1に表示
+          // updateMonitor1は削除（クイズ要素を削除したため）
+          document.getElementById('quiz-question').textContent = quizData.question_text;
+          document.getElementById('quiz-input-panel').classList.remove('active');
+          document.getElementById('quiz-display-panel').classList.add('active');
+          
+          // 顔画像を生成
+          updateStatus('顔画像生成中...');
+          // 顔画像は使用しない（写真撮影を削除したため）
+          
+          // 2パターン生成
+          const successPrompt = `審査員Aの顔写真を基に、${quizData.success_prompt}`;
+          const failurePrompt = `審査員Aの顔写真を基に、${quizData.failure_prompt}`;
+          
+          successImage = await generateFaceImage(successPrompt, faceImage);
+          failureImage = await generateFaceImage(failurePrompt, faceImage);
+          
+          updateStatus('準備完了！WASDキーで移動してください');
+          gameState = 'playing';
+        } catch (error) {
+          console.error('クイズ生成エラー:', error);
+          document.getElementById('quiz-status').textContent = 'エラー: ' + error.message;
+        }
+      };
+      */
+    }
+    
+    // ============================================
+    // WASD操作 + ゲームパッド対応（PS5コントローラー含む）
+    // ============================================
+    let keyboardControlsInitialized = false;
+    let gamepadIndex = null;
+    const gamepadAxes = { leftX: 0, leftY: 0 };
+    
+    function initKeyboardControls() {
+      // 既に初期化済みの場合はスキップ
+      if (keyboardControlsInitialized) {
+        console.log('キーボード操作は既に初期化されています');
+        return;
+      }
+      
+      const keydownHandler = (e) => {
+        keys[e.code] = true;
+        console.log('キー押下:', e.code, 'gameState:', gameState);
+        
+        // スペースキーでパンチを実行
+        if (e.code === 'Space' && gameState === 'playing' && !isPunching && punchCooldown === 0) {
+          e.preventDefault();
+          performPunch();
+        }
+      };
+      
+      const keyupHandler = (e) => {
+        keys[e.code] = false;
+      };
+      
+      window.addEventListener('keydown', keydownHandler);
+      window.addEventListener('keyup', keyupHandler);
+      
+      // ゲームパッド接続検出
+      window.addEventListener('gamepadconnected', (e) => {
+        console.log('ゲームパッド接続:', e.gamepad.id, e.gamepad.index);
+        gamepadIndex = e.gamepad.index;
+        updateStatus(`ゲームパッド接続: ${e.gamepad.id}`);
+      });
+      
+      window.addEventListener('gamepaddisconnected', (e) => {
+        console.log('ゲームパッド切断:', e.gamepad.index);
+        if (gamepadIndex === e.gamepad.index) {
+          gamepadIndex = null;
+          updateStatus('ゲームパッドが切断されました');
+        }
+      });
+      
+      keyboardControlsInitialized = true;
+      console.log('キーボード操作を初期化しました（ゲームパッド対応済み）');
+    }
+    
+    function updateGamepadInput() {
+      // gamepadIndexがnullの場合、接続されているゲームパッドを自動検出
+      if (gamepadIndex === null) {
+        const gamepads = navigator.getGamepads();
+        for (let i = 0; i < gamepads.length; i++) {
+          if (gamepads[i]) {
+            gamepadIndex = i;
+            console.log('ゲームパッドを自動検出:', gamepads[i].id, 'index:', i);
+            break;
+          }
+        }
+      }
+      
+      if (gamepadIndex === null) return;
+      
+      const gamepad = navigator.getGamepads()[gamepadIndex];
+      if (!gamepad) {
+        gamepadIndex = null;
+        return;
+      }
+      
+      // PS5コントローラーの左スティック（axes 0, 1）
+      // Xboxコントローラーなど他のコントローラーにも対応
+      const deadZone = 0.15; // デッドゾーン設定
+      let leftX = Math.abs(gamepad.axes[0]) > deadZone ? gamepad.axes[0] : 0;
+      let leftY = Math.abs(gamepad.axes[1]) > deadZone ? gamepad.axes[1] : 0;
+      
+      // 上下左右ボタン対応（D-Pad）
+      // PS5: buttons[15] = 左, buttons[16] = 下, buttons[17] = 右, buttons[18] = 上
+      // Xbox: buttons[15] = D-Pad左, buttons[16] = D-Pad下, buttons[17] = D-Pad右, buttons[18] = D-Pad上
+      if (gamepad.buttons[15]?.pressed) leftX = -1; // 左
+      if (gamepad.buttons[17]?.pressed) leftX = 1;  // 右
+      if (gamepad.buttons[18]?.pressed) leftY = -1; // 上
+      if (gamepad.buttons[16]?.pressed) leftY = 1;  // 下
+      
+      gamepadAxes.leftX = leftX;
+      gamepadAxes.leftY = leftY;
+      
+      // 〇ボタンの検出（PS5: buttons[1], Xbox: buttons[0]）
+      const circleButtonPressed = gamepad.buttons[1]?.pressed || gamepad.buttons[0]?.pressed;
+      
+      // 〇ボタンが押された瞬間を検出（エッジ検出）
+      if (circleButtonPressed && !lastGamepadButton0 && gameState === 'playing' && !isPunching && punchCooldown === 0) {
+        performPunch();
+      }
+      
+      lastGamepadButton0 = circleButtonPressed;
+      
+      // デバッグ用（最初の接続時のみ）
+      if (!window.gamepadDebugShown) {
+        console.log('ゲームパッド情報:', {
+          id: gamepad.id,
+          buttons: gamepad.buttons.length,
+          axes: gamepad.axes.length,
+          buttons: Array.from(gamepad.buttons).map((b, i) => ({ i, pressed: b.pressed, value: b.value }))
+        });
+        window.gamepadDebugShown = true;
+      }
+    }
+    
+    // ============================================
+    // パンチ処理
+    // ============================================
+    async function performPunch() {
+      if (!playerAvatar || isPunching || punchCooldown > 0) {
+        return;
+      }
+      
+      console.log('パンチ実行！');
+      isPunching = true;
+      punchCooldown = 60; // 1秒間のクールダウン（60FPS想定）
+      
+      try {
+        // パンチアニメーションを適用（Jab Cross.fbxを使用）
+        await playerAvatar.changeFBX('../fbx/Jab Cross.fbx');
+        
+        // パンチアニメーションの位置トラックを無効化（移動しないように）
+        if (playerAvatar.character.action && playerAvatar.character.currentMixer) {
+          const clip = playerAvatar.character.action.getClip();
+          if (clip && clip.tracks) {
+            const filteredTracks = clip.tracks.filter(track => {
+              const name = track.name.toLowerCase();
+              return !name.includes('position');
+            });
+            
+            const newClip = new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
+            playerAvatar.character.action.stop();
+            playerAvatar.character.currentMixer.uncacheClip(clip);
+            const newAction = playerAvatar.character.currentMixer.clipAction(newClip);
+            newAction.play();
+            playerAvatar.character.action = newAction;
+          }
+        }
+        
+        // パンチの当たり判定をチェック（アニメーション開始後少し遅延）
+        setTimeout(() => {
+          checkPunchHit();
+        }, 200); // 200ms後に当たり判定
+        
+        // パンチアニメーション終了後にIdleに戻す
+        setTimeout(async () => {
+          isPunching = false;
+          await playerAvatar.changeFBX('../fbx/Idle.fbx');
+          currentAnimation = 'idle';
+        }, 1000); // 1秒後にIdleに戻す
+        
+      } catch (error) {
+        console.error('パンチアニメーションエラー:', error);
+        isPunching = false;
+      }
+    }
+    
+    // ============================================
+    // パンチの当たり判定
+    // ============================================
+    function checkPunchHit() {
+      if (!targetObject || !playerAvatar) {
+        return;
+      }
+      
+      // レイキャストで前方をチェック
+      const raycaster = new THREE.Raycaster();
+      
+      // プレイヤーの向きからレイの方向を計算
+      const direction = new THREE.Vector3();
+      direction.x = Math.sin(playerRotation);
+      direction.z = Math.cos(playerRotation);
+      direction.normalize();
+      
+      // プレイヤーの手の位置を基準にする（大体の位置）
+      const origin = new THREE.Vector3();
+      origin.copy(playerPosition);
+      origin.y += 1.0; // 手の高さ
+      
+      raycaster.set(origin, direction);
+      raycaster.far = 3.0; // パンチの到達距離
+      
+      // ターゲットオブジェクトとの交差判定
+      const intersects = raycaster.intersectObject(targetObject, true);
+      
+      if (intersects.length > 0) {
+        console.log('パンチが当たった！距離:', intersects[0].distance.toFixed(2));
+        
+        // 体力を減らす（3発で破壊できるように約33.33ポイント減少）
+        const damage = 33.34; // 3発で100%ダメージ
+        currentHealth = Math.max(0, currentHealth - damage);
+        updateHealthBar(currentHealth);
+        
+        console.log(`体力: ${currentHealth.toFixed(1)}%`);
+        
+        // 体力が0になったら破壊
+        if (currentHealth <= 0) {
+          showVictoryMessage();
+          // 量子コンピューターを破壊エフェクト付きで削除
+          destroyQuantumComputer();
+        }
+      }
+    }
+    
+    // ============================================
+    // 勝利メッセージを表示
+    // ============================================
+    function showVictoryMessage() {
+      const victoryMessage = document.getElementById('victory-message');
+      if (victoryMessage) {
+        victoryMessage.classList.add('active');
+        console.log('✓ 勝利メッセージを表示しました');
+      }
+    }
+    
+    // ============================================
+    // 爆死メッセージを表示
+    // ============================================
+    function showDeathMessage() {
+      const deathMessage = document.getElementById('death-message');
+      if (deathMessage) {
+        deathMessage.classList.add('active');
+        console.log('✓ 爆死メッセージを表示しました');
+      }
+    }
+    
+    // ============================================
+    // 爆死後にゲームをリセットして最初の画面に戻る
+    // ============================================
+    async function resetGameAfterDeath() {
+      console.log('=== ゲームをリセットして最初の画面に戻ります ===');
+      
+      // 死亡メッセージを非表示
+      const deathMessage = document.getElementById('death-message');
+      if (deathMessage) {
+        deathMessage.classList.remove('active');
+      }
+      
+      // ゲーム状態をリセット
+      isPlayerDead = false;
+      currentHealth = 100;
+      gameState = 'title';
+      
+      // プレイヤーの位置をリセット
+      playerPosition = new THREE.Vector3(0, 0, 10);
+      playerRotation = 0;
+      
+      // アニメーションループを停止
+      animationRunning = false;
+      
+      // シーンをクリア（既存のオブジェクトを削除）
+      if (scene) {
+        // すべてのオブジェクトを削除
+        while (scene.children.length > 0) {
+          const obj = scene.children[0];
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(mat => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if (obj.material.map) obj.material.map.dispose();
+              obj.material.dispose();
+            }
+          }
+          scene.remove(obj);
+        }
+      }
+      
+      // レンダラーとカメラをクリア
+      if (renderer) {
+        if (renderer.domElement) {
+          renderer.domElement.remove();
+        }
+        renderer.dispose();
+        renderer = null;
+      }
+      
+      // 変数をリセット
+      playerAvatar = null;
+      targetObject = null;
+      flyingObject = null;
+      searchlightLaser = null;
+      wells = [];
+      trashObjects = [];
+      waterEffects = [];
+      
+      // バックサウンドを停止
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+      }
+      
+      // 3D空間を非表示
+      const canvasContainer = document.getElementById('canvas-container');
+      if (canvasContainer) {
+        canvasContainer.classList.remove('active');
+        canvasContainer.style.display = 'none';
+      }
+      
+      // 少し待ってからゲームを再開
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // デフォルトアバターを設定
+      selectedPlayerAvatar = 'sample5';
+      
+      // 直接3Dワールドを開始
+      await startGameDirectly();
+    }
+    
+    // ============================================
+    // 量子コンピューターを破壊
+    // ============================================
+    function destroyQuantumComputer() {
+      if (!targetObject) return;
+      
+      console.log('量子コンピューターを破壊します');
+      
+      // 破壊エフェクト（パーティクル）
+      const particleCount = 100;
+      const particles = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const velocities = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      
+      const center = new THREE.Vector3();
+      center.copy(targetObject.position);
+      center.y += 2.5; // メインボディの中心（高さが2倍になったので2.5に調整）
+      
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        positions[i3] = center.x + (Math.random() - 0.5) * 2;
+        positions[i3 + 1] = center.y + (Math.random() - 0.5) * 2;
+        positions[i3 + 2] = center.z + (Math.random() - 0.5) * 2;
+        
+        // ランダムな方向に飛び散る
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.2 + Math.random() * 0.3;
+        velocities[i3] = Math.cos(angle) * speed;
+        velocities[i3 + 1] = Math.random() * 0.2 + 0.1;
+        velocities[i3 + 2] = Math.sin(angle) * speed;
+        
+        // 色（シアン系）
+        colors[i3] = Math.random() * 0.5 + 0.5; // R
+        colors[i3 + 1] = Math.random() * 0.5 + 0.5; // G
+        colors[i3 + 2] = 1.0; // B
+      }
+      
+      particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.15,
+        transparent: true,
+        opacity: 1,
+        vertexColors: true
+      });
+      
+      const particleSystem = new THREE.Points(particles, particleMaterial);
+      scene.add(particleSystem);
+      
+      // パーティクルのアニメーション
+      let frame = 0;
+      const animateParticles = () => {
+        frame++;
+        const positions = particleSystem.geometry.attributes.position.array;
+        const colors = particleSystem.geometry.attributes.color.array;
+        
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3;
+          positions[i3] += velocities[i3];
+          positions[i3 + 1] += velocities[i3 + 1];
+          positions[i3 + 2] += velocities[i3 + 2];
+          
+          // 重力で下に落ちる
+          velocities[i3 + 1] -= 0.015;
+          
+          // フェードアウト
+          const opacity = Math.max(0, 1 - frame / 120);
+          colors[i3 + 2] = opacity; // Bを減らしてフェード
+        }
+        
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+        particleSystem.geometry.attributes.color.needsUpdate = true;
+        particleMaterial.opacity = Math.max(0, 1 - frame / 120);
+        
+        if (frame < 120) {
+          requestAnimationFrame(animateParticles);
+        } else {
+          // パーティクルを削除
+          scene.remove(particleSystem);
+          particleSystem.geometry.dispose();
+          particleMaterial.dispose();
+        }
+      };
+      
+      animateParticles();
+      
+      // ボスを削除
+      scene.remove(targetObject);
+      if (targetObject.geometry) targetObject.geometry.dispose();
+      if (targetObject.material) {
+        if (Array.isArray(targetObject.material)) {
+          targetObject.material.forEach(mat => mat.dispose());
+        } else {
+          targetObject.material.dispose();
+        }
+      }
+      targetObject = null;
+      
+      console.log('✓ ボスを破壊しました');
+      
+      // エンディング動画を再生
+      playEndingVideo();
+    }
+    
+    function updatePlayerMovement() {
+      if (!playerAvatar) {
+        return;
+      }
+      
+      // クイズ入力待ちでも移動できるように（ただし衝突判定はスキップ）
+      if (gameState === 'quiz-input') {
+        // クイズ入力待ち中でも移動は可能にする（デバッグ用）
+        // 実際のゲート進入は 'playing' 状態のみ
+      } else if (gameState !== 'playing' && gameState !== 'quiz-input') {
+        return;
+      }
+      
+      // ゲームパッド入力を更新（ゲーム中は常に更新）
+      updateGamepadInput();
+      
+      let moved = false;
+      
+      // キーボード入力の処理
+      let inputX = 0;
+      let inputZ = 0;
+      
+      if (keys['KeyW']) {
+        inputZ -= 1; // 前進
+      }
+      if (keys['KeyS']) {
+        inputZ += 1; // 後退
+      }
+      if (keys['KeyA']) {
+        inputX -= 1; // 左
+      }
+      if (keys['KeyD']) {
+        inputX += 1; // 右
+      }
+      
+      // ゲームパッド入力の処理（左スティック）
+      // gamepadIndexがnullでも、updateGamepadInput内で自動検出される
+      inputX += gamepadAxes.leftX;
+      inputZ += gamepadAxes.leftY;
+      
+      // 入力の正規化（対角線移動時の速度を一定に保つ）
+      const inputMagnitude = Math.sqrt(inputX * inputX + inputZ * inputZ);
+      if (inputMagnitude > 0) {
+        inputX /= inputMagnitude;
+        inputZ /= inputMagnitude;
+        
+        // ゴミオブジェクトとの当たり判定
+        const newX = playerPosition.x + inputX * moveSpeed;
+        const newZ = playerPosition.z + inputZ * moveSpeed;
+        let canMove = true;
+        
+        // ゴミオブジェクトとの衝突チェック
+        for (const trash of trashObjects) {
+          const trashWorldPos = new THREE.Vector3();
+          trash.getWorldPosition(trashWorldPos);
+          const distance = Math.sqrt(
+            Math.pow(newX - trashWorldPos.x, 2) + 
+            Math.pow(newZ - trashWorldPos.z, 2)
+          );
+          const collisionRadius = 0.8; // ゴミオブジェクトの当たり判定半径
+          
+          if (distance < collisionRadius) {
+            canMove = false;
+            break;
+          }
+        }
+        
+        if (canMove) {
+          playerPosition.x = newX;
+          playerPosition.z = newZ;
+          moved = true;
+        }
+      }
+      
+      // 向きの計算（移動方向に基づく、見た目が正しい方向を向くように修正）
+      if (moved && inputMagnitude > 0) {
+        // キーボードとゲームパッドの入力を統合した方向を使用
+        // 見た目を正しい方向にするため、180度回転させて修正
+        playerRotation = Math.atan2(inputX, inputZ) + Math.PI;
+      }
+      
+      // アニメーション切り替え
+      if (moved && currentAnimation !== 'run') {
+        currentAnimation = 'run';
+        playerAvatar.changeFBX('../fbx/Fast Run.fbx').then(() => {
+          // アニメーションの位置トラックを完全に無効化
+          if (playerAvatar.character.action && playerAvatar.character.currentMixer) {
+            const clip = playerAvatar.character.action.getClip();
+            if (clip && clip.tracks) {
+              // 位置トラック（.position）を完全に削除
+              const filteredTracks = clip.tracks.filter(track => {
+                const name = track.name.toLowerCase();
+                // position、hips.position、mixamorig:Hips.positionなど全ての位置トラックを削除
+                return !name.includes('position');
+              });
+              
+              // クリップを再構築
+              const newClip = new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
+              
+              // 古いアクションを停止して削除
+              playerAvatar.character.action.stop();
+              playerAvatar.character.currentMixer.uncacheClip(clip);
+              
+              // 新しいアクションを作成して再生
+              const newAction = playerAvatar.character.currentMixer.clipAction(newClip);
+              newAction.play();
+              playerAvatar.character.action = newAction;
+              
+              console.log('位置トラックを削除しました。残りトラック数:', filteredTracks.length);
+            }
+          }
+        });
+      } else if (!moved && currentAnimation !== 'idle') {
+        currentAnimation = 'idle';
+        playerAvatar.changeFBX('../fbx/Idle.fbx');
+      }
+      
+      // 位置更新（毎フレーム確実に固定・最優先）
+      if (playerAvatar && playerAvatar.character && playerAvatar.character.currentVrm) {
+        const scene = playerAvatar.character.currentVrm.scene;
+        
+        // アニメーションのルートモーションを無効化：位置を常に固定
+        scene.position.set(playerPosition.x, playerPosition.y, playerPosition.z);
+        scene.rotation.y = playerRotation;
+        
+        // アニメーションアクションが実行中でも位置をリセット
+        if (playerAvatar.character.action && currentAnimation === 'run') {
+          // Fast Runアニメーション中は特に注意深く位置を固定
+          const action = playerAvatar.character.action;
+          if (action.isRunning()) {
+            // アニメーションのトラックから位置情報を削除
+            const clip = action.getClip();
+            if (clip && clip.tracks) {
+              // 位置トラックを無効化（既に削除されているはずだが念のため）
+              clip.tracks.forEach(track => {
+                if (track.name.includes('.position') && track.name.includes('hips')) {
+                  // 位置トラックを無視
+                  return;
+                }
+              });
+            }
+          }
+          
+          // 位置を再度固定（確実に）
+          scene.position.set(playerPosition.x, playerPosition.y, playerPosition.z);
+        }
+      }
+      
+      // 衝突判定は削除（クイズ要素を削除したため）
+    }
+    
+    // ============================================
+    // ステータス更新
+    // ============================================
+    function updateStatus(text) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) {
+        statusEl.textContent = text;
+        console.log('[ステータス]', text);
+        
+        // ステータスパネルが表示されていることを確認
+        const statusPanel = document.getElementById('status-panel');
+        if (statusPanel) {
+          statusPanel.style.display = 'block';
+        }
+      } else {
+        console.error('status-text要素が見つかりません');
+      }
+    }
+    
+    // ============================================
+    // アニメーションループ
+    // ============================================
+    let animationRunning = false;
+    
+    function animate() {
+      if (!animationRunning) {
+        animationRunning = true;
+      }
+      requestAnimationFrame(animate);
+      
+      // アバター更新
+      if (playerAvatar) {
+        // 位置を先に保存（絶対的な基準位置）
+        const savedPosition = new THREE.Vector3().copy(playerPosition);
+        const savedRotation = playerRotation;
+        
+        // アバター更新前にもアバターの位置を固定
+        if (playerAvatar.character && playerAvatar.character.currentVrm) {
+          const scene = playerAvatar.character.currentVrm.scene;
+          scene.position.copy(savedPosition);
+          scene.rotation.y = savedRotation;
+          
+          // ルートボーンの位置をリセット（もしあれば）
+          if (scene.children && scene.children.length > 0) {
+            const root = scene.children[0];
+            if (root && root.isSkinnedMesh === false) {
+              // ルートボーンの位置を0に固定
+              root.position.set(0, 0, 0);
+            }
+          }
+        }
+        
+        // アバター更新
+        playerAvatar.update();
+        
+        // アニメーション更新後、即座に位置を強制リセット（最優先）
+        if (playerAvatar.character && playerAvatar.character.currentVrm) {
+          const scene = playerAvatar.character.currentVrm.scene;
+          
+          // 位置と回転を強制的に戻す（3回実行で確実に）
+          scene.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+          scene.rotation.y = savedRotation;
+          scene.updateMatrixWorld(true);
+          
+          // ルートボーンの位置も再リセット
+          if (scene.children && scene.children.length > 0) {
+            const root = scene.children[0];
+            if (root && root.isSkinnedMesh === false) {
+              root.position.set(0, 0, 0);
+            }
+          }
+          
+          // 最終確認：再度位置を設定
+          scene.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+          scene.rotation.y = savedRotation;
+        }
+      }
+      // judgeAvatarは削除済み
+      
+      // プレイヤー移動更新
+      updatePlayerMovement();
+      
+      // パンチのクールダウンを更新
+      if (punchCooldown > 0) {
+        punchCooldown--;
+      }
+      
+      // 飛行物体の更新
+      updateFlyingObject();
+      
+      // サーチライトレーザーの更新（飛行物体に追従、当たり判定）
+      updateSearchlightLaser();
+      
+      // 焼けた地面のマーカーの更新
+      updateBurnedGroundMarks();
+      
+      // モニターのフレームの光を点滅させる（緊迫感のある雰囲気）
+      if (monitorLeft && monitorLeft.children.length > 0) {
+        const frame = monitorLeft.children[0];
+        if (frame && frame.material) {
+          const time = Date.now() * 0.003;
+          frame.material.emissiveIntensity = 0.3 + Math.sin(time) * 0.3;
+        }
+      }
+      if (monitorRight && monitorRight.children.length > 0) {
+        const frame = monitorRight.children[0];
+        if (frame && frame.material) {
+          const time = Date.now() * 0.003;
+          frame.material.emissiveIntensity = 0.3 + Math.sin(time) * 0.3;
+        }
+      }
+      
+      // 水のエフェクト更新
+      updateWaterEffects();
+      
+      // 雨のアニメーション更新
+      updateRain();
+      
+      // ネオンライトの点滅アニメーション
+      updateNeonLights();
+      
+      // カメラがプレイヤーを追従（方向は一定、前後のみ移動）
+      if (playerAvatar && camera && (gameState === 'playing' || gameState === 'quiz-input')) {
+        // X方向は固定（横移動なし）、Z方向のみ追尾
+        const targetZ = playerPosition.z + 5; // プレイヤーの後ろ5ユニット（10 → 5に変更）
+        const targetY = 2; // 高さは一定（3 → 2に変更）
+        
+        // YとZのみ滑らかに追尾
+        camera.position.y += (targetY - camera.position.y) * 0.1;
+        camera.position.z += (targetZ - camera.position.z) * 0.1;
+        // Xは0に固定（中央から見る）
+        camera.position.x = 0;
+        
+        // カメラは常に前を向く（方向は一定）
+        camera.lookAt(0, playerPosition.y + 1, playerPosition.z);
+      }
+      
+      renderer.render(scene, camera);
+    }
+    
+    // ============================================
+    // タイトル画面とアバター選択の制御
+    // ============================================
+    let avatarSelectScene, avatarSelectCamera, avatarSelectRenderer;
+    let previewAvatar5, previewAvatar9;
+    let avatarSelectAnimationRunning = false;
+    
+    function initTitleScreen() {
+      // オープニング映像を準備
+      initOpeningVideos();
+      
+      // エンディング映像を初期化
+      initEndingVideo();
+      
+      // ゲームパッドの〇ボタンとAボタンでゲーム開始
+      checkGamepadForStart();
+      
+      // キーボードでオープニング操作（Enterキー）
+      initOpeningKeyboardControls();
+    }
+    
+    // ============================================
+    // オープニング映像の初期化
+    // ============================================
+    function initOpeningVideos() {
+      // オープニング映像1と2の要素を作成
+      openingVideoElement1 = document.createElement('video');
+      openingVideoElement1.src = 'オープニング動画-20251108T032141Z-1-001/オープニング動画/opening 1.mp4';
+      openingVideoElement1.preload = 'auto';
+      openingVideoElement1.style.position = 'fixed';
+      openingVideoElement1.style.top = '0';
+      openingVideoElement1.style.left = '0';
+      openingVideoElement1.style.width = '100%';
+      openingVideoElement1.style.height = '100%';
+      openingVideoElement1.style.zIndex = '10000';
+      openingVideoElement1.style.display = 'block'; // 初期状態で表示
+      openingVideoElement1.style.backgroundColor = '#000000'; // 背景色を黒に設定
+      openingVideoElement1.pause(); // 自動再生しない（丸ボタンで再生）
+      document.body.appendChild(openingVideoElement1);
+      
+      // オープニングの背景用の黒い要素を作成
+      const openingBackground = document.createElement('div');
+      openingBackground.id = 'opening-background';
+      openingBackground.style.position = 'fixed';
+      openingBackground.style.top = '0';
+      openingBackground.style.left = '0';
+      openingBackground.style.width = '100%';
+      openingBackground.style.height = '100%';
+      openingBackground.style.backgroundColor = '#000000';
+      openingBackground.style.zIndex = '9999'; // 動画の下に配置
+      openingBackground.style.display = 'block'; // 初期状態で表示
+      document.body.appendChild(openingBackground);
+      
+      openingVideoElement2 = document.createElement('video');
+      openingVideoElement2.src = 'オープニング動画-20251108T032141Z-1-001/オープニング動画/opening2.mp4';
+      openingVideoElement2.preload = 'auto';
+      openingVideoElement2.style.position = 'fixed';
+      openingVideoElement2.style.top = '0';
+      openingVideoElement2.style.left = '0';
+      openingVideoElement2.style.width = '100%';
+      openingVideoElement2.style.height = '100%';
+      openingVideoElement2.style.zIndex = '10000';
+      openingVideoElement2.style.display = 'none';
+      openingVideoElement2.style.backgroundColor = '#000000'; // 背景色を黒に設定
+      document.body.appendChild(openingVideoElement2);
+      
+      // opening1が終了したらopening2を再生
+      openingVideoElement1.addEventListener('ended', () => {
+        console.log('opening1終了、opening2を再生');
+        openingVideoElement1.style.display = 'none';
+        openingVideoElement2.style.display = 'block';
+        openingVideoElement2.play();
+        // 背景を表示
+        const openingBackground = document.getElementById('opening-background');
+        if (openingBackground) {
+          openingBackground.style.display = 'block';
+        }
+      });
+      
+      // opening2が終了したら直接3Dゲームを開始
+      openingVideoElement2.addEventListener('ended', async () => {
+        console.log('opening2終了、3Dゲームを開始');
+        openingVideoElement2.style.display = 'none';
+        openingPlaying = false;
+        openingPlayedOnce = true; // 一度流れたことを記録
+        
+        // 背景を非表示
+        const openingBackground = document.getElementById('opening-background');
+        if (openingBackground) {
+          openingBackground.style.display = 'none';
+        }
+        
+        // 操作方法のコンポーネントを再表示
+        const instructions = document.getElementById('instructions');
+        const gameUI = document.getElementById('game-ui');
+        if (instructions) instructions.style.display = 'block';
+        if (gameUI) {
+          const statusPanel = gameUI.querySelector('#status-panel');
+          if (statusPanel) statusPanel.style.display = 'block';
+        }
+        
+        // デフォルトアバターを設定
+        selectedPlayerAvatar = 'sample5';
+        
+        // 直接3Dワールドを開始
+        await startGameDirectly();
+      });
+      
+      console.log('✓ オープニング映像を初期化しました（初期状態で表示）');
+    }
+    
+    // ============================================
+    // エンディング映像の初期化と再生
+    // ============================================
+    function initEndingVideo() {
+      // エンディング映像の要素を作成（まだ作成されていない場合のみ）
+      if (!endingVideoElement) {
+        endingVideoElement = document.createElement('video');
+        endingVideoElement.src = 'エンディング動画-20251108T032142Z-1-001/エンディング動画/complete_ending.mp4';
+        endingVideoElement.preload = 'auto';
+        endingVideoElement.style.position = 'fixed';
+        endingVideoElement.style.top = '0';
+        endingVideoElement.style.left = '0';
+        endingVideoElement.style.width = '100%';
+        endingVideoElement.style.height = '100%';
+        endingVideoElement.style.zIndex = '10001'; // オープニングより上に表示
+        endingVideoElement.style.display = 'none';
+        endingVideoElement.style.backgroundColor = '#000000'; // 背景色を黒に設定
+        document.body.appendChild(endingVideoElement);
+        
+        // エンディング動画終了時の処理
+        endingVideoElement.addEventListener('ended', () => {
+          console.log('エンディング動画終了');
+          endingVideoElement.style.display = 'none';
+          endingPlaying = false;
+          
+          // ASI DIVE 技術解説スライド.pngを表示
+          showTechnicalSlide();
+        });
+      }
+    }
+    
+    function playEndingVideo() {
+      if (endingPlaying) return; // 既に再生中の場合はスキップ
+      
+      console.log('エンディング動画を再生開始');
+      endingPlaying = true;
+      
+      // エンディング映像を初期化（まだ作成されていない場合）
+      initEndingVideo();
+      
+      // 3D空間を非表示
+      const canvasContainer = document.getElementById('canvas-container');
+      if (canvasContainer) {
+        canvasContainer.classList.remove('active');
+        canvasContainer.style.display = 'none';
+      }
+      
+      // 操作方法のコンポーネントを非表示
+      const instructions = document.getElementById('instructions');
+      const gameUI = document.getElementById('game-ui');
+      if (instructions) instructions.style.display = 'none';
+      if (gameUI) {
+        const statusPanel = gameUI.querySelector('#status-panel');
+        if (statusPanel) statusPanel.style.display = 'none';
+      }
+      
+      // エンディング動画を表示して再生
+      endingVideoElement.style.display = 'block';
+      endingVideoElement.currentTime = 0;
+      
+      // 背景BGMを停止
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+        console.log('✓ 背景BGMを停止しました');
+      }
+      
+      endingVideoElement.play().catch(error => {
+        console.error('エンディング動画の再生エラー:', error);
+        endingPlaying = false;
+      });
+    }
+    
+    // ============================================
+    // 技術解説スライドを表示
+    // ============================================
+    function showTechnicalSlide() {
+      const technicalSlide = document.getElementById('technical-slide');
+      if (technicalSlide) {
+        technicalSlide.classList.add('active');
+        console.log('✓ 技術解説スライドを表示しました');
+      }
+    }
+    
+    // ============================================
+    // ゲームアセットをプリロードする関数
+    // ============================================
+    function preloadGameAssets() {
+      try {
+        console.log('バックグラウンドで3Dゲームの素材をプリロード開始');
+        
+        // 画像アセットのプリロード
+        const imageAssets = [
+          'ryousi.png',
+          'ryousi.jpg'
+        ];
+        
+        imageAssets.forEach(src => {
+          const img = new Image();
+          img.src = src;
+        });
+        
+        // バックサウンドのプリロード
+        if (!backSoundAudio) {
+          backSoundAudio = new Audio('プレイ中バックサウンド/backsound.mp3');
+          backSoundAudio.preload = 'auto';
+        }
+        
+        console.log('✓ ゲームアセットのプリロードを開始しました');
+      } catch (error) {
+        console.warn('アセットプリロードエラー（非致命的）:', error);
+      }
+    }
+    
+    // ============================================
+    // オープニング映像を開始する関数
+    // ============================================
+    function startOpeningVideo() {
+      if (!openingPlayedOnce && !openingPlaying && (gameState === 'initializing' || gameState === 'title')) {
+        console.log('オープニング1を再生開始');
+        openingPlaying = true;
+        
+        // バックグラウンドで3Dゲームの素材を読み込む
+        preloadGameAssets();
+        
+        // 操作方法のコンポーネントを非表示
+        const instructions = document.getElementById('instructions');
+        const gameUI = document.getElementById('game-ui');
+        if (instructions) instructions.style.display = 'none';
+        if (gameUI) {
+          const statusPanel = gameUI.querySelector('#status-panel');
+          if (statusPanel) statusPanel.style.display = 'none';
+        }
+        
+        // 背景を表示
+        const openingBackground = document.getElementById('opening-background');
+        if (openingBackground) {
+          openingBackground.style.display = 'block';
+        }
+        
+        openingVideoElement1.currentTime = 0; // 最初から再生
+        openingVideoElement1.play();
+      }
+    }
+    
+    // ============================================
+    // オープニング映像をスキップする関数
+    // ============================================
+    async function skipOpeningVideo() {
+      if (openingPlaying) {
+        console.log('オープニングをスキップ');
+        openingVideoElement1.pause();
+        openingVideoElement1.style.display = 'none';
+        openingVideoElement2.pause();
+        openingVideoElement2.style.display = 'none';
+        openingPlaying = false;
+        openingPlayedOnce = true;
+        
+        // 背景を非表示
+        const openingBackground = document.getElementById('opening-background');
+        if (openingBackground) {
+          openingBackground.style.display = 'none';
+        }
+        
+        // 操作方法のコンポーネントを再表示
+        const instructions = document.getElementById('instructions');
+        const gameUI = document.getElementById('game-ui');
+        if (instructions) instructions.style.display = 'block';
+        if (gameUI) {
+          const statusPanel = gameUI.querySelector('#status-panel');
+          if (statusPanel) statusPanel.style.display = 'block';
+        }
+        
+        // デフォルトアバターを設定
+        selectedPlayerAvatar = 'sample5';
+        
+        // 直接3Dワールドを開始
+        await startGameDirectly();
+      }
+    }
+    
+    // ============================================
+    // ゲームパッドの〇ボタンとAボタンでオープニング開始・ゲーム開始
+    // ============================================
+    function checkGamepadForStart() {
+      let lastCircleButtonState = false;
+      let lastCrossButtonState = false; // ●ボタン（×ボタン）の状態
+      let lastAButtonState = false; // Aボタンの状態
+      let circleButtonPressCount = 0; // 〇ボタンの連続押下回数
+      let lastCircleButtonPressTime = 0; // 最後に〇ボタンを押した時刻
+      const CIRCLE_BUTTON_DOUBLE_PRESS_TIME = 500; // 2回押しの判定時間（ミリ秒）
+      
+      const checkGamepad = () => {
+        const gamepads = navigator.getGamepads();
+        for (let i = 0; i < gamepads.length; i++) {
+          const gamepad = gamepads[i];
+          if (!gamepad) continue;
+          
+          // 〇ボタンの検出（PS5: buttons[1]）
+          const circleButtonPressed = gamepad.buttons[1]?.pressed || false;
+          
+          // Aボタンの検出（Xbox: buttons[0]がAボタン、PS5では×ボタンなので別途処理）
+          // Xboxコントローラーの場合のみAボタンとして扱う
+          // PS5コントローラーの場合は×ボタンとして既に処理されている
+          const isXboxController = gamepad.id && (gamepad.id.includes('Xbox') || gamepad.id.includes('xbox') || gamepad.id.includes('Microsoft'));
+          const aButtonPressed = isXboxController && (gamepad.buttons[0]?.pressed || false);
+          
+          // ●ボタン（×ボタン）の検出（PS5: buttons[0], Xbox: buttons[2]）
+          const crossButtonPressed = (!isXboxController && gamepad.buttons[0]?.pressed) || (isXboxController && gamepad.buttons[2]?.pressed) || false;
+          
+          // 〇ボタンが押された瞬間を検出
+          if (circleButtonPressed && !lastCircleButtonState) {
+            const currentTime = Date.now();
+            
+            // オープニング映像がまだ流れていない場合
+            if (!openingPlayedOnce && !openingPlaying && (gameState === 'initializing' || gameState === 'title')) {
+              startOpeningVideo();
+              circleButtonPressCount = 1;
+              lastCircleButtonPressTime = currentTime;
+            }
+            // オープニング再生中の場合
+            else if (openingPlaying) {
+              // 1回押しでスキップ（Enterキーと同様）
+              skipOpeningVideo();
+            }
+            // オープニング再生後、タイトル画面の場合（タイトル画面は削除済みのため、この処理は不要）
+            // オープニング映像が一度流れたら、〇ボタンはパンチ専用（updateGamepadInputで処理される）
+          }
+          
+          // Aボタンが押された瞬間を検出
+          if (aButtonPressed && !lastAButtonState) {
+            const currentTime = Date.now();
+            
+            // オープニング映像がまだ流れていない場合
+            if (!openingPlayedOnce && !openingPlaying && (gameState === 'initializing' || gameState === 'title')) {
+              startOpeningVideo();
+            }
+            // オープニング再生中の場合
+            else if (openingPlaying) {
+              skipOpeningVideo();
+            }
+            // オープニング再生後、タイトル画面の場合（タイトル画面は削除済みのため、この処理は不要）
+          }
+          
+          // ●ボタン（×ボタン）が押された瞬間を検出（タイトル画面は削除済みのため、この処理は不要）
+          
+          lastCircleButtonState = circleButtonPressed;
+          lastCrossButtonState = crossButtonPressed;
+          lastAButtonState = aButtonPressed;
+        }
+        
+        requestAnimationFrame(checkGamepad);
+      };
+      
+      checkGamepad();
+    }
+    
+    // ============================================
+    // キーボードでオープニング操作（Enterキー）
+    // ============================================
+    function initOpeningKeyboardControls() {
+      let lastEnterKeyState = false;
+      let enterKeyPressCount = 0;
+      let lastEnterKeyPressTime = 0;
+      const ENTER_KEY_DOUBLE_PRESS_TIME = 500; // 2回押しの判定時間（ミリ秒）
+      
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.code === 'Enter') {
+          const currentTime = Date.now();
+          const enterKeyPressed = true;
+          
+          if (enterKeyPressed && !lastEnterKeyState) {
+            // オープニング映像がまだ流れていない場合
+            if (!openingPlayedOnce && !openingPlaying && (gameState === 'initializing' || gameState === 'title')) {
+              startOpeningVideo();
+              enterKeyPressCount = 1;
+              lastEnterKeyPressTime = currentTime;
+            }
+            // オープニング再生中の場合
+            else if (openingPlaying) {
+              // Enterキーでスキップ
+              skipOpeningVideo();
+              enterKeyPressCount = 0;
+            }
+            // オープニング再生後、タイトル画面の場合（タイトル画面は削除済みのため、この処理は不要）
+          }
+          
+          lastEnterKeyState = enterKeyPressed;
+        }
+      });
+      
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter' || e.code === 'Enter') {
+          lastEnterKeyState = false;
+        }
+      });
+    }
+    
+    // ============================================
+    // バックサウンドの再生
+    // ============================================
+    function startBackSound() {
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+      }
+      
+      backSoundAudio = new Audio('プレイ中バックサウンド/backsound.mp3');
+      backSoundAudio.loop = true;
+      backSoundAudio.volume = 0.5;
+      backSoundAudio.play().catch(error => {
+        console.warn('バックサウンドの再生に失敗:', error);
+      });
+      
+      console.log('✓ バックサウンドを開始しました');
+    }
+    
+    async function initAvatarSelect3D() {
+      try {
+        const container = document.getElementById('canvas-container');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        // シーン作成
+        avatarSelectScene = new THREE.Scene();
+        avatarSelectScene.background = new THREE.Color(0x404040); // さらに明るい背景（グレー）
+        
+        // カメラ
+        avatarSelectCamera = new THREE.PerspectiveCamera(65, width / height, 0.01, 1000);
+        avatarSelectCamera.position.set(0, 2, 8);
+        avatarSelectCamera.lookAt(0, 0, 0);
+        
+        // レンダラー
+        avatarSelectRenderer = new THREE.WebGLRenderer({ antialias: true });
+        avatarSelectRenderer.setSize(width, height);
+        avatarSelectRenderer.setClearColor(0x404040); // さらに明るい背景
+        avatarSelectRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+        avatarSelectRenderer.toneMappingExposure = 1.5; // 露出をさらに上げる
+        container.appendChild(avatarSelectRenderer.domElement);
+        
+        // ライト - さらに明るく設定
+        // 環境光を最大限に強く
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+        avatarSelectScene.add(ambientLight);
+        
+        // メインの方向光源（さらに強く）
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        directionalLight.position.set(10, 12, 5);
+        directionalLight.castShadow = false;
+        avatarSelectScene.add(directionalLight);
+        
+        // 補助的な方向光源（左側から、さらに強く）
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight2.position.set(-10, 10, 5);
+        avatarSelectScene.add(directionalLight2);
+        
+        // 補助的な方向光源（右側から）
+        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight3.position.set(10, 8, -5);
+        avatarSelectScene.add(directionalLight3);
+        
+        // ポイントライト（アバターの周りを明るく、さらに強く）
+        const pointLight1 = new THREE.PointLight(0xffffff, 1.5, 50);
+        pointLight1.position.set(-3, 2.5, 2);
+        avatarSelectScene.add(pointLight1);
+        
+        const pointLight2 = new THREE.PointLight(0xffffff, 1.5, 50);
+        pointLight2.position.set(3, 2.5, 2);
+        avatarSelectScene.add(pointLight2);
+        
+        // ヘミスフィアライト（全体をさらに明るく）
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x666666, 1.2);
+        avatarSelectScene.add(hemisphereLight);
+        
+        // スポットライト（アバターに直接光を当てる）
+        const spotLight1 = new THREE.SpotLight(0xffffff, 1.5, 30, Math.PI / 6, 0.5, 2);
+        spotLight1.position.set(-3, 5, 5);
+        spotLight1.target.position.set(-3, 0, 0);
+        avatarSelectScene.add(spotLight1);
+        avatarSelectScene.add(spotLight1.target);
+        
+        const spotLight2 = new THREE.SpotLight(0xffffff, 1.5, 30, Math.PI / 6, 0.5, 2);
+        spotLight2.position.set(3, 5, 5);
+        spotLight2.target.position.set(3, 0, 0);
+        avatarSelectScene.add(spotLight2);
+        avatarSelectScene.add(spotLight2.target);
+        
+        // 床（さらに明るく）
+        const floorGeometry = new THREE.PlaneGeometry(20, 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x777777 }); // さらに明るい床
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        avatarSelectScene.add(floor);
+        
+        // アバターを読み込んで表示
+        updateStatus('アバターを読み込み中...');
+        
+        // sample5を左側に
+        previewAvatar5 = await GVRM.load('../gvrm/sample5.gvrm', avatarSelectScene, avatarSelectCamera, avatarSelectRenderer, 'sample5.gvrm');
+        previewAvatar5.character.currentVrm.scene.position.set(-3, 0, 0);
+        await previewAvatar5.changeFBX('../fbx/Idle.fbx');
+        
+        // sample9を右側に
+        previewAvatar9 = await GVRM.load('../gvrm/sample9.gvrm', avatarSelectScene, avatarSelectCamera, avatarSelectRenderer, 'sample9.gvrm');
+        previewAvatar9.character.currentVrm.scene.position.set(3, 0, 0);
+        await previewAvatar9.changeFBX('../fbx/Idle.fbx');
+        
+        // アニメーションループ開始
+        avatarSelectAnimationRunning = true;
+        animateAvatarSelect();
+        
+        updateStatus('アバター選択画面');
+      } catch (error) {
+        console.error('アバター選択3D初期化エラー:', error);
+      }
+    }
+    
+    function animateAvatarSelect() {
+      if (!avatarSelectAnimationRunning) return;
+      
+      requestAnimationFrame(animateAvatarSelect);
+      
+      if (previewAvatar5) previewAvatar5.update();
+      if (previewAvatar9) previewAvatar9.update();
+      
+      // カメラを回転
+      if (avatarSelectCamera) {
+        const time = Date.now() * 0.0005;
+        avatarSelectCamera.position.x = Math.sin(time) * 8;
+        avatarSelectCamera.position.z = Math.cos(time) * 8;
+        avatarSelectCamera.position.y = 2 + Math.sin(time * 2) * 0.5;
+        avatarSelectCamera.lookAt(0, 0, 0);
+      }
+      
+      if (avatarSelectRenderer && avatarSelectScene && avatarSelectCamera) {
+        avatarSelectRenderer.render(avatarSelectScene, avatarSelectCamera);
+      }
+    }
+    
+    function initAvatarSelection() {
+      const avatarOptions = document.querySelectorAll('.avatar-option');
+      const confirmBtn = document.getElementById('confirm-avatar-btn');
+      
+      avatarOptions.forEach(option => {
+        option.onclick = () => {
+          // 選択状態をリセット
+          avatarOptions.forEach(opt => opt.classList.remove('selected'));
+          // 選択状態を追加
+          option.classList.add('selected');
+          selectedPlayerAvatar = option.dataset.avatar;
+          confirmBtn.disabled = false;
+          
+          // 3Dアバターにもハイライト効果を追加（より明確なサイズ変化）
+          if (selectedPlayerAvatar === 'sample5' && previewAvatar5) {
+            previewAvatar5.character.currentVrm.scene.scale.setScalar(1.4);
+            if (previewAvatar9) previewAvatar9.character.currentVrm.scene.scale.setScalar(1.0);
+          } else if (selectedPlayerAvatar === 'sample9' && previewAvatar9) {
+            previewAvatar9.character.currentVrm.scene.scale.setScalar(1.4);
+            if (previewAvatar5) previewAvatar5.character.currentVrm.scene.scale.setScalar(1.0);
+          }
+        };
+      });
+      
+      confirmBtn.onclick = async () => {
+        if (!selectedPlayerAvatar) return;
+        
+        // 3Dアバター選択画面を停止
+        avatarSelectAnimationRunning = false;
+        if (avatarSelectRenderer && avatarSelectRenderer.domElement) {
+          avatarSelectRenderer.domElement.remove();
+        }
+        
+        document.getElementById('avatar-select-screen').classList.remove('active');
+        
+        // 直接3Dワールドに入る（写真撮影をスキップ）
+        await startGameDirectly();
+      };
+    }
+    
+    // 直接3Dワールドを開始（写真撮影なし）
+    async function startGameDirectly() {
+      try {
+        console.log('=== 直接3Dワールド開始 ===');
+        
+        // ダミーの顔画像を作成（使用しないが、エラーを防ぐため）
+        const dummyCanvas = document.createElement('canvas');
+        dummyCanvas.width = 640;
+        dummyCanvas.height = 480;
+        const ctx = dummyCanvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 640, 480);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#4682B4');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 640, 480);
+        capturedFaceImage = dummyCanvas.toDataURL('image/jpeg', 0.85);
+        
+        // ローディング画面を表示
+        const loadingScreen = document.getElementById('loading-screen');
+        loadingScreen.classList.remove('hidden');
+        updateStatus('3D空間を準備中...');
+        
+        // 3D空間（canvas-container）を表示
+        const canvasContainer = document.getElementById('canvas-container');
+        if (canvasContainer) {
+          canvasContainer.classList.add('active');
+          canvasContainer.style.display = 'block';
+        }
+        
+        // Three.js初期化
+        updateStatus('3D空間を初期化中...');
+        await initThreeJS();
+        
+        // フィールドの一番奥にオブジェクトを作成
+        updateStatus('オブジェクトを作成中...');
+        await createTargetObject();
+        
+        // 飛行物体を作成
+        updateStatus('飛行物体を作成中...');
+        createFlyingObject();
+        
+        // 井戸を作成
+        updateStatus('井戸を作成中...');
+        createWells();
+        
+        // ゴミ箱とゴミ袋を作成
+        updateStatus('ゴミを作成中...');
+        createTrash();
+        
+        // 荒廃した建物を作成
+        updateStatus('建物を作成中...');
+        createRuinedBuildings();
+        
+        // モニターを作成
+        updateStatus('モニターを作成中...');
+        await createMonitors();
+        
+        // キーボード操作を初期化
+        updateStatus('キーボード操作を設定中...');
+        initKeyboardControls();
+        
+        // アバター読み込み
+        updateStatus('アバターを読み込み中...');
+        const avatarsLoaded = await loadAvatars();
+        if (!avatarsLoaded) {
+          throw new Error('アバターの読み込みに失敗しました');
+        }
+        
+        // 体力ゲージを初期化
+        healthBarFill = document.getElementById('health-bar-fill');
+        if (healthBarFill) {
+          updateHealthBar(100); // 初期体力100%
+        }
+        
+        // ローディング画面を非表示
+        loadingScreen.classList.add('hidden');
+        
+        // アニメーションループ開始
+        if (!animationRunning) {
+          animationRunning = true;
+          animate();
+        }
+        
+        // ゲーム状態をplayingに設定
+        gameState = 'playing';
+        updateStatus('準備完了！WASDキーで移動、Spaceキーで井戸の水を出せます');
+        console.log('✓ 直接3Dワールド開始完了');
+        
+        // バックサウンドを開始
+        startBackSound();
+      } catch (error) {
+        console.error('直接3Dワールド開始エラー:', error);
+        updateStatus('エラー: ' + error.message);
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          loadingScreen.classList.add('hidden');
+        }
+        alert(error.message + '\n\nページをリロード（F5キー）してください。');
+      }
+    }
+    
+    // AI処理完了後に3D空間を初期化してゲーム開始（新フロー）
+    async function startGameAfterQuiz() {
+      try {
+        console.log('=== startGameAfterQuiz 開始 ===');
+        
+        // アバター選択画面の3Dを完全に停止（startQuizInputBeforeGameで既に停止済みのため、念のため確認のみ）
+        avatarSelectAnimationRunning = false;
+        if (avatarSelectRenderer) {
+          try {
+            if (avatarSelectRenderer.domElement) {
+              avatarSelectRenderer.domElement.remove();
+            }
+            avatarSelectRenderer.dispose();
+            // forceContextLossは呼び出さない（ブラウザがブロックする可能性があるため）
+          } catch (e) {
+            console.warn('アバター選択レンダラークリーンアップ時のエラー（無視）:', e);
+          }
+          avatarSelectRenderer = null;
+        }
+        if (avatarSelectScene) {
+          while (avatarSelectScene.children.length > 0) {
+            const obj = avatarSelectScene.children[0];
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+              if (Array.isArray(obj.material)) {
+                obj.material.forEach(mat => {
+                  if (mat.map) mat.map.dispose();
+                  mat.dispose();
+                });
+              } else {
+                if (obj.material.map) obj.material.map.dispose();
+                obj.material.dispose();
+              }
+            }
+            avatarSelectScene.remove(obj);
+          }
+          avatarSelectScene = null;
+        }
+        
+        // さらに待機してから初期化
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 3D空間（canvas-container）を表示
+        const canvasContainer = document.getElementById('canvas-container');
+        if (canvasContainer) {
+          canvasContainer.classList.add('active');
+          canvasContainer.style.display = 'block';
+          console.log('✓ 3D空間を表示');
+        }
+        
+        // Three.js初期化
+        updateStatus('3D空間を初期化中...');
+        await initThreeJS();
+        
+          // フィールドの一番奥にオブジェクトを作成
+          updateStatus('オブジェクトを作成中...');
+          createTargetObject();
+        
+        // 井戸を作成
+        updateStatus('井戸を作成中...');
+        createWells();
+        
+        // ゴミ箱とゴミ袋を作成
+        updateStatus('ゴミを作成中...');
+        createTrash();
+        
+        // 荒廃した建物を作成
+        updateStatus('建物を作成中...');
+        createRuinedBuildings();
+        
+        // モニターを作成
+        updateStatus('モニターを作成中...');
+        await createMonitors();
+        
+        // キーボード操作を初期化
+        updateStatus('キーボード操作を設定中...');
+        initKeyboardControls();
+        
+        // アバター読み込み
+        updateStatus('アバターを読み込み中...');
+        const avatarsLoaded = await loadAvatars();
+        if (!avatarsLoaded) {
+          throw new Error('アバターの読み込みに失敗しました');
+        }
+        
+        // モニターにクイズ情報を表示（両側のモニターに同じ問題文を表示）
+        if (quizData) {
+          // updateMonitor1は削除（クイズ要素を削除したため）
+          console.log('✓ 問題をモニター1と2（両側）に表示:', quizData.question_text);
+        }
+        
+        // ローディング画面を非表示
+        document.getElementById('loading-screen').classList.add('hidden');
+        
+        // クイズ表示パネルを表示
+        const quizDisplayPanel = document.getElementById('quiz-display-panel');
+        if (quizDisplayPanel && quizData) {
+          quizDisplayPanel.classList.add('active');
+          quizDisplayPanel.style.display = 'block';
+          document.getElementById('quiz-question').textContent = quizData.question_text;
+        }
+        
+        // アニメーションループ開始
+        if (!animationRunning) {
+          animationRunning = true;
+          animate();
+        }
+        
+        // すぐにゲーム開始
+        gameState = 'playing';
+        updateStatus('準備完了！WASDキーで○×ゲートに進んでください！');
+        console.log('✓ ゲーム開始（playing状態）');
+        
+        // バックサウンドを開始
+        startBackSound();
+      } catch (error) {
+        console.error('ゲーム初期化エラー:', error);
+        const errorMsg = 'ゲーム初期化エラー: ' + error.message + ' (F5キーでページをリロードしてください)';
+        updateStatus(errorMsg);
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          const loadingPara = loadingScreen.querySelector('p');
+          if (loadingPara) {
+            loadingPara.textContent = 'エラー: ' + error.message + '\n\nF5キーでページをリロードしてください';
+          }
+        }
+        alert(error.message + '\n\nページをリロード（F5キー）してください。');
+      }
+    }
+    
+    async function startGame() {
+      try {
+        // アバター選択画面の3Dを完全に停止
+        avatarSelectAnimationRunning = false;
+        if (avatarSelectRenderer && avatarSelectRenderer.domElement) {
+          avatarSelectRenderer.domElement.remove();
+        }
+        if (avatarSelectScene) {
+          while (avatarSelectScene.children.length > 0) {
+            avatarSelectScene.remove(avatarSelectScene.children[0]);
+          }
+        }
+        if (avatarSelectRenderer) {
+          avatarSelectRenderer.dispose();
+        }
+        
+        // Three.js初期化（既存のcanvasをクリアしてから）
+        updateStatus('3D空間を初期化中...');
+        await initThreeJS();
+        
+        // フィールドの一番奥にオブジェクトを作成
+        updateStatus('オブジェクトを作成中...');
+        await createTargetObject();
+        
+        // 飛行物体を作成
+        updateStatus('飛行物体を作成中...');
+        createFlyingObject();
+        
+        // 井戸を作成
+        updateStatus('井戸を作成中...');
+        createWells();
+        
+        // ゴミ箱とゴミ袋を作成
+        updateStatus('ゴミを作成中...');
+        createTrash();
+        
+        // 荒廃した建物を作成
+        updateStatus('建物を作成中...');
+        createRuinedBuildings();
+        
+        // モニターを作成
+        updateStatus('モニターを作成中...');
+        await createMonitors();
+        
+        // キーボード操作を初期化
+        updateStatus('キーボード操作を設定中...');
+        initKeyboardControls();
+        
+        // アバター読み込み
+        updateStatus('アバターを読み込み中...');
+        const avatarsLoaded = await loadAvatars();
+        if (!avatarsLoaded) {
+          throw new Error('アバターの読み込みに失敗しました');
+        }
+        
+        // 体力ゲージを初期化
+        healthBarFill = document.getElementById('health-bar-fill');
+        if (healthBarFill) {
+          updateHealthBar(100); // 初期体力100%
+        }
+        
+        // ローディング画面を非表示
+        document.getElementById('loading-screen').classList.add('hidden');
+        
+        // アニメーションループ開始
+        if (!animationRunning) {
+          animationRunning = true;
+          animate();
+        }
+        
+        // ゲーム状態をplayingに設定
+        gameState = 'playing';
+        updateStatus('準備完了！WASDキーで移動、Spaceキーで井戸の水を出せます');
+        
+        // バックサウンドを開始
+        startBackSound();
+      } catch (error) {
+        console.error('ゲーム初期化エラー:', error);
+        updateStatus('ゲーム初期化エラー: ' + error.message);
+        document.getElementById('loading-screen').querySelector('p').textContent = 
+          'エラー: ' + error.message;
+      }
+    }
+    
+    // ============================================
+    // 初期化
+    // ============================================
+    async function init() {
+      try {
+        // API設定UI
+        initSettingsUI();
+        
+        // タイトル画面とアバター選択の初期化
+        initTitleScreen();
+        initAvatarSelection();
+        
+        // ゲーム状態をtitleに設定
+        gameState = 'title';
+        
+        updateStatus('タイトル画面');
+      } catch (error) {
+        console.error('初期化エラー:', error);
+      }
+    }
+    
+    // 初期化開始
+    init();
+
+  </script>
+</body>
+</html>
