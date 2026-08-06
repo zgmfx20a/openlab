@@ -1,0 +1,4737 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>薬を届けよう！ - 体内配送ミッション</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+    }
+    
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      display: none;
+    }
+    
+    #canvas-container.active {
+      display: block;
+    }
+    
+    #settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    
+    #settings-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+    
+    #settings-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+    }
+    
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
+    }
+    
+    #settings-modal.active {
+      display: flex;
+    }
+    
+    .settings-content {
+      background: #1a1a1a;
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 500px;
+      width: 90%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .settings-content h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .settings-group {
+      margin-bottom: 20px;
+    }
+    
+    .settings-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    
+    .settings-group input {
+      width: 100%;
+      padding: 12px;
+      background: #2a2a2a;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 5px;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    .settings-group input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    
+    .settings-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+    
+    .btn {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+      min-width: 200px;
+      height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-primary {
+      background: #4CAF50;
+      color: #fff;
+    }
+    
+    .btn-primary:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: #666;
+      color: #fff;
+    }
+    
+    .btn-secondary:hover {
+      background: #777;
+      transform: translateY(-2px);
+    }
+    
+    .btn-danger {
+      background: #f44336;
+      color: #fff;
+    }
+    
+    .btn-danger:hover {
+      background: #d32f2f;
+      transform: translateY(-2px);
+    }
+    
+    #game-ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    .ui-panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      pointer-events: auto;
+      z-index: 100;
+    }
+    
+    #status-panel {
+      top: 20px;
+      left: 20px;
+      min-width: 250px;
+      z-index: 9999;
+      pointer-events: auto;
+      max-width: 400px;
+    }
+    
+    #status-panel h3 {
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #4CAF50;
+    }
+    
+    #status-panel .status-item {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    
+    #objective-panel {
+      top: 20px;
+      right: 20px;
+      min-width: 220px;
+      text-align: center;
+      border-color: #FFD700;
+    }
+    
+    #objective-panel h3 {
+      color: #FFD700;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    
+    #objective-panel .objective-item {
+      margin: 6px 0;
+      font-size: 14px;
+    }
+    
+    #objective-panel .completed {
+      color: #4CAF50;
+    }
+    
+    #objective-panel .pending {
+      color: #FF9800;
+    }
+    
+    #progress-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      pointer-events: none;
+      text-align: center;
+    }
+    
+    #progress-label {
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    
+    #progress-bar-background {
+      width: 300px;
+      height: 16px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    #progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+      transition: width 0.3s ease;
+      border-radius: 8px;
+    }
+    
+    #victory-message {
+      position: fixed;
+      top: 7%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10000;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #victory-message.active {
+      display: block;
+    }
+    
+    #victory-message h1 {
+      font-size: 100px;
+      font-weight: bold;
+      color: #4CAF50;
+      text-shadow: 
+        0 0 20px rgba(76, 175, 80, 0.8),
+        0 0 40px rgba(76, 175, 80, 0.6),
+        0 0 60px rgba(76, 175, 80, 0.4),
+        4px 4px 8px rgba(0, 0, 0, 0.9);
+      margin: 0;
+      animation: victoryPulse 1.5s ease-in-out infinite;
+      letter-spacing: 0.1em;
+    }
+    
+    #victory-message p {
+      font-size: 24px;
+      color: #fff;
+      margin-top: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    
+    .victory-stats {
+      margin: 18px auto 0;
+      font-size: 18px;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 12px 20px;
+      display: inline-block;
+    }
+    
+    .victory-stats div {
+      margin: 4px 0;
+    }
+    
+    /* QRコード（右端・縦中央に配置） */
+    #victory-qr {
+      position: fixed;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10000;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #victory-qr.active {
+      display: block;
+    }
+    
+    #victory-qr .victory-stats {
+      margin: 0 0 14px;
+    }
+    
+    #victory-qr-canvas {
+      background: #000;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+    }
+    
+    .victory-qr-note {
+      font-size: 12px;
+      color: #ccc;
+      margin-top: 8px;
+      max-width: 180px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
+    }
+    
+    #death-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10001;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #death-message.active {
+      display: block;
+    }
+    
+    #death-message h1 {
+      font-size: 120px;
+      font-weight: bold;
+      color: #FF0000;
+      text-shadow: 
+        0 0 30px rgba(255, 0, 0, 1.0),
+        0 0 60px rgba(255, 0, 0, 0.8),
+        0 0 90px rgba(255, 0, 0, 0.6),
+        6px 6px 12px rgba(0, 0, 0, 1.0);
+      margin: 0;
+      animation: deathPulse 1.0s ease-in-out infinite;
+      letter-spacing: 0.15em;
+    }
+    
+    @keyframes deathPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.15);
+        opacity: 0.95;
+      }
+    }
+    
+    @keyframes victoryPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+      }
+    }
+    
+    #instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      pointer-events: auto;
+    }
+    
+    #instructions h4 {
+      margin-bottom: 8px;
+      color: #4CAF50;
+    }
+    
+    #instructions .key {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin: 2px;
+      font-weight: bold;
+    }
+    
+    #instructions .debug-btn {
+      pointer-events: auto;
+      background: rgba(255, 100, 100, 0.3);
+      border: 1px solid rgba(255, 100, 100, 0.5);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 6px;
+      z-index: 500;
+    }
+    
+    #instructions .debug-btn:hover {
+      background: rgba(255, 100, 100, 0.5);
+    }
+    
+    #instructions .debug-btn.off {
+      background: rgba(100, 100, 100, 0.3);
+      border-color: rgba(100, 100, 100, 0.5);
+    }
+    
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      flex-direction: column;
+    }
+    
+    #loading-screen.hidden {
+      display: none;
+    }
+    
+    #loading-screen h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* アバター選択画面 */
+    #avatar-select-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      z-index: 4000;
+    }
+    
+    #avatar-select-screen.active {
+      display: flex;
+    }
+    
+    #avatar-select-screen h2 {
+      font-size: 28px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      z-index: 4001;
+      position: relative;
+    }
+    
+    #avatar-select-screen .avatar-select-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 16px;
+      color: #FFD700;
+      text-shadow: 0 0 16px rgba(255, 215, 0, 0.6), 2px 2px 4px rgba(0,0,0,0.9);
+      letter-spacing: 0.15em;
+      z-index: 4001;
+      position: relative;
+    }
+    
+    .avatar-selection-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      height: 100%;
+      justify-content: space-between;
+      padding: 20px 0;
+      box-sizing: border-box;
+    }
+    
+    .avatar-3d-area {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+      max-height: 70vh;
+    }
+    
+    .avatar-options-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 30px 20px;
+      width: 100%;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 50%, transparent 100%);
+      z-index: 4002;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+    
+    .avatar-options {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    
+    .avatar-option {
+      background: rgba(255, 255, 255, 0.25);
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      padding: 18px 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      min-width: 150px;
+      max-width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transform: scale(1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .avatar-option:hover {
+      background: rgba(255, 255, 255, 0.35);
+      border-color: #4CAF50;
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+    }
+    
+    .avatar-option.selected {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.5);
+      border-width: 4px;
+      box-shadow: 0 8px 30px rgba(76, 175, 80, 0.8);
+      transform: scale(1.3);
+    }
+    
+    .avatar-option h3 {
+      margin: 12px 0 4px 0;
+      font-size: 18px;
+      color: #fff;
+    }
+    
+    .avatar-option p {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .avatar-preview {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: bold;
+      color: #fff;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      transition: all 0.3s ease;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .avatar-option.selected .avatar-preview {
+      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.4);
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6);
+    }
+    
+    .avatar-option.webcam-option {
+      border-color: #2196F3;
+      background: rgba(33, 150, 243, 0.3);
+    }
+    
+    .avatar-option.webcam-option:hover {
+      border-color: #2196F3;
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.6);
+    }
+    
+    .avatar-option.webcam-option.selected {
+      border-color: #2196F3;
+      background: rgba(33, 150, 243, 0.5);
+      box-shadow: 0 8px 30px rgba(33, 150, 243, 0.8);
+    }
+    
+    .avatar-option.webcam-option .avatar-preview {
+      border-color: #2196F3;
+      background: rgba(33, 150, 243, 0.3);
+    }
+    
+    #confirm-avatar-btn {
+      margin-top: 10px;
+      background: #4CAF50 !important;
+      color: #fff !important;
+      font-size: 18px !important;
+      font-weight: bold !important;
+      padding: 16px 40px !important;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6) !important;
+      z-index: 4003;
+      position: relative;
+    }
+    
+    #confirm-avatar-btn:hover {
+      background: #45a049 !important;
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.8) !important;
+    }
+    
+    #confirm-avatar-btn:disabled {
+      background: #666 !important;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* 難易度選択 */
+    .level-select {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 6px;
+      z-index: 4003;
+      position: relative;
+    }
+    
+    .level-select-label {
+      font-size: 15px;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+      font-weight: bold;
+      margin-right: 4px;
+    }
+    
+    .level-option {
+      padding: 10px 22px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+    
+    .level-option:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .level-option.selected {
+      border-color: #FFD700;
+      background: rgba(255, 215, 0, 0.35);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+    }
+    
+    /* ウェブカメラスキャン画面 */
+    #webcam-scan-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+      flex-direction: column;
+    }
+    
+    #webcam-scan-overlay.active {
+      display: flex;
+    }
+    
+    #webcam-scan-overlay h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #2196F3;
+    }
+    
+    #webcam-scan-overlay video {
+      width: 480px;
+      max-width: 90%;
+      border-radius: 12px;
+      border: 3px solid #2196F3;
+      margin-bottom: 20px;
+    }
+    
+    #webcam-scan-overlay .scan-buttons {
+      display: flex;
+      gap: 16px;
+    }
+    
+    /* 薬所持インジケーター */
+    #medicine-indicator {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #medicine-indicator.active {
+      display: block;
+    }
+    
+    #medicine-indicator .medicine-icon {
+      font-size: 40px;
+      display: block;
+      animation: floatItem 2s ease-in-out infinite;
+    }
+    
+    #medicine-indicator .medicine-label {
+      font-size: 14px;
+      color: #4CAF50;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      display: block;
+      margin-top: 4px;
+    }
+    
+    @keyframes floatItem {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    /* 薬のミニマップ */
+    #minimap-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 140px;
+      height: 140px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      z-index: 300;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    #minimap-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* 通知表示（画面下部・アバターと被らない） */
+    #notification {
+      position: fixed;
+      bottom: 195px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 500;
+      pointer-events: none;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      max-width: 90%;
+    }
+    
+    #notification.active {
+      opacity: 1;
+    }
+    
+    #notification h2 {
+      font-size: 26px;
+      color: #4CAF50;
+      text-shadow: 0 0 20px rgba(76, 175, 80, 0.8), 4px 4px 8px rgba(0,0,0,0.9);
+    }
+    
+    #notification.notice-pickup h2 {
+      color: #4CAF50;
+    }
+    
+    #notification.notice-danger h2 {
+      color: #f44336;
+      font-size: 28px;
+    }
+    
+    /* 危険警告オーバーレイ */
+    #danger-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 150;
+      background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0) 35%, rgba(255, 0, 0, 0.55) 100%);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    
+    #danger-label {
+      position: fixed;
+      top: 120px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 151;
+      font-size: 34px;
+      font-weight: bold;
+      color: #ff4444;
+      text-shadow: 0 0 20px rgba(255, 0, 0, 0.9), 3px 3px 6px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+    }
+    
+    #danger-label.active {
+      opacity: 1;
+      animation: dangerPulse 0.6s ease-in-out infinite;
+    }
+    
+    @keyframes dangerPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.12); }
+    }
+    
+    /* ポーズ画面 */
+    #pause-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 6000;
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+    }
+    
+    #pause-screen.active {
+      display: flex;
+    }
+    
+    #pause-screen h1 {
+      font-size: 64px;
+      color: #FFD700;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+      margin-bottom: 16px;
+      letter-spacing: 0.15em;
+    }
+    
+    #pause-screen p {
+      font-size: 18px;
+      color: #ccc;
+      margin-bottom: 30px;
+    }
+    
+    #victory-message .btn,
+    #death-message .btn,
+    #victory-restart .btn {
+      pointer-events: auto;
+      margin-top: 24px;
+      min-width: 240px;
+    }
+    
+    /* 勝利画面のリスタートボタン（下部中央・アバターと重ならない） */
+    #victory-restart {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10000;
+      pointer-events: none;
+      display: none;
+      text-align: center;
+    }
+    
+    #victory-restart.active {
+      display: block;
+    }
+    
+    #victory-restart .btn {
+      margin-top: 0;
+    }
+    
+    /* 3Dワールド内のラベル（CSS2D） */
+    .world-label {
+      position: absolute;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      font-size: 14px;
+      font-weight: bold;
+      white-space: nowrap;
+      pointer-events: none;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
+      transform: translate(-50%, -50%);
+      user-select: none;
+    }
+    
+    .world-label.lesion-label {
+      background: rgba(120, 0, 0, 0.8);
+      border-color: #ff5533;
+      font-size: 18px;
+      animation: lesionLabelPulse 1s ease-in-out infinite;
+    }
+    
+    .world-label.enemy-label {
+      font-size: 12px;
+    }
+    
+    @keyframes lesionLabelPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.08); }
+    }
+    
+    /* クレジット画像（表示位置・大きさ・透明度はスクリプト内 CREDIT_CONFIG で調整） */
+    #credit-image {
+      position: fixed;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    /* クレジットテキスト（プログレスバーの右側・3行） */
+    #credit-text {
+      position: absolute;
+      left: calc(100% + 14px);
+      top: 0;
+      text-align: left;
+      color: #ff4444;
+      font-size: 12px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
+      white-space: nowrap;
+      line-height: 1.6;
+    }
+    
+    #credit-text-main {
+      color: #ff4444;
+    }
+    
+    #credit-text-powered {
+      font-size: 11px;
+      color: #66ff88;
+    }
+    
+    #credit-text-source {
+      font-size: 11px;
+      color: #66ff88;
+    }
+    
+    /* デモプレイ中バッジ */
+    #demo-badge {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 320;
+      pointer-events: none;
+      display: none;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 215, 0, 0.6);
+      color: #FFD700;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border-radius: 999px;
+      letter-spacing: 0.1em;
+    }
+    
+    #demo-badge.active {
+      display: block;
+    }
+    
+    /* 病巣方向のHUD矢印 */
+    #lesion-arrow {
+      position: fixed;
+      top: 90px;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      margin-left: -24px;
+      margin-top: -24px;
+      z-index: 320;
+      pointer-events: none;
+      display: none;
+      font-size: 44px;
+      line-height: 48px;
+      text-align: center;
+      color: #ff4444;
+      text-shadow: 0 0 14px rgba(255, 0, 0, 0.95), 2px 2px 4px rgba(0, 0, 0, 0.9);
+      filter: drop-shadow(0 0 6px rgba(255, 60, 60, 0.8));
+    }
+    
+    #lesion-arrow.active {
+      display: block;
+      animation: lesionArrowPulse 0.8s ease-in-out infinite;
+    }
+    
+    @keyframes lesionArrowPulse {
+      0%, 100% { transform: rotate(var(--arrow-rot, 0deg)) scale(1); }
+      50% { transform: rotate(var(--arrow-rot, 0deg)) scale(1.12); }
+    }
+    
+  </style>
+</head>
+<body>
+  <!-- アバター選択画面 -->
+  <div id="avatar-select-screen">
+    <div class="avatar-select-title">薬を病巣に届けよう</div>
+    <h2>プレイヤーアバターを選択してください</h2>
+    <div class="avatar-selection-container">
+      <div class="avatar-3d-area"></div>
+      <div class="avatar-options-area">
+        <div class="avatar-options">
+          <div class="avatar-option" data-avatar="sample5">
+            <div class="avatar-preview">5</div>
+            <h3>サンプル5</h3>
+            <p>標準アバターA</p>
+          </div>
+          <div class="avatar-option" data-avatar="sample4">
+            <div class="avatar-preview">9</div>
+            <h3>サンプル4</h3>
+            <p>標準アバターB</p>
+          </div>
+          <div class="avatar-option" data-avatar="pinocchio">
+            <div class="avatar-preview">🤥</div>
+            <h3>ピノキオ</h3>
+            <p>木の人形アバター</p>
+          </div>
+          <div class="avatar-option webcam-option" data-avatar="webcam">
+            <div class="avatar-preview">📷</div>
+            <h3>新規作成</h3>
+            <p>Webカメラでスキャン</p>
+          </div>
+        </div>
+        <div class="level-select">
+          <span class="level-select-label">難易度</span>
+          <button class="level-option selected" data-level="easy">やさしい</button>
+          <button class="level-option" data-level="normal">ふつう</button>
+          <button class="level-option" data-level="hard">むずかしい</button>
+        </div>
+        <button class="btn btn-primary" id="confirm-avatar-btn" disabled>選択したアバターで進む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webカメラスキャン画面 -->
+  <div id="webcam-scan-overlay">
+    <h2>Webカメラでアバターをスキャン</h2>
+    <video id="webcam-preview" autoplay playsinline></video>
+    <div class="scan-buttons">
+      <button class="btn btn-primary" id="capture-webcam-btn">撮影して使用</button>
+      <button class="btn btn-secondary" id="cancel-webcam-btn">キャンセル</button>
+    </div>
+    <p style="color: #ccc; margin-top: 16px; font-size: 14px;">正面を向いて撮影してください</p>
+  </div>
+
+  <!-- ローディング画面 -->
+  <div id="loading-screen" class="hidden">
+    <h1>薬を届けよう！</h1>
+    <div class="spinner"></div>
+    <p style="margin-top: 20px;">読み込み中...</p>
+  </div>
+
+  <!-- 3Dキャンバスコンテナ -->
+  <div id="canvas-container"></div>
+
+  <!-- クレジット画像（表示内容はスクリプト内 CREDIT_CONFIG で調整） -->
+  <img id="credit-image" alt="credit">
+
+  <!-- 設定ボタン -->
+  <div id="settings-btn">
+    <svg viewBox="0 0 24 24">
+      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41l-0.36,2.54c-0.59,0.24-1.13,0.56-1.62,0.94l-2.39-0.96c-0.22-0.08-0.47,0-0.59,0.22 L2.74,8.87c-0.12,0.22-0.07,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.07,0.62-0.07,0.94s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+    </svg>
+  </div>
+
+  <!-- API設定モーダル -->
+  <div id="settings-modal">
+    <div class="settings-content">
+      <h2>API設定</h2>
+      <div class="settings-group">
+        <label for="gemini-api-key">Gemini API Key</label>
+        <input type="password" id="gemini-api-key" placeholder="Gemini APIキーを入力">
+      </div>
+      <div class="settings-group">
+        <label for="whisper-api-key">Whisper API Key</label>
+        <input type="password" id="whisper-api-key" placeholder="OpenAI Whisper APIキーを入力">
+      </div>
+      <div class="settings-buttons">
+        <button class="btn btn-primary" id="save-settings">保存</button>
+        <button class="btn btn-secondary" id="close-settings">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ゲームUI -->
+  <div id="game-ui">
+    <div id="status-panel" class="ui-panel">
+      <h3>ゲーム状態</h3>
+      <div class="status-item" id="status-text">初期化中...</div>
+      <div class="status-item" id="avatar-status">アバター読み込み中...</div>
+    </div>
+
+    <div id="objective-panel" class="ui-panel">
+      <h3>ミッション</h3>
+      <div class="objective-item pending" id="obj-medicine">1. 薬を拾う</div>
+      <div class="objective-item pending" id="obj-deposit">2. 病巣に薬を投下</div>
+    </div>
+
+    <div id="progress-panel">
+      <div id="progress-label">病巣までの距離</div>
+      <div id="progress-bar-background">
+        <div id="progress-bar-fill"></div>
+      </div>
+      <div id="credit-text">
+        <div id="credit-text-main"></div>
+        <div id="credit-text-powered"></div>
+        <div id="credit-text-source"></div>
+      </div>
+    </div>
+
+    <div id="lesion-arrow">▼</div>
+
+    <div id="demo-badge">デモプレイ中</div>
+
+    <div id="medicine-indicator">
+      <span class="medicine-icon">💊</span>
+      <span class="medicine-label">薬を所持中</span>
+    </div>
+
+    <div id="minimap-container">
+      <canvas id="minimap-canvas" width="140" height="140"></canvas>
+    </div>
+
+    <div id="instructions" class="ui-panel">
+      <h4>操作方法</h4>
+      <div><span class="key">W / ↑</span> 前進 <span class="key">S / ↓</span> 後退</div>
+      <div><span class="key">A / ←</span> 左 <span class="key">D / →</span> 右</div>
+      <div><span class="key">Shift</span> ダッシュ <span class="key">Esc</span> ポーズ</div>
+      <div>薬を所持中に免疫細胞に触れると即死</div>
+      <div>病巣に薬を投下して勝利</div>
+      <button class="debug-btn" id="toggle-enemies-btn">免疫細胞 非表示</button>
+    </div>
+    
+    <div id="victory-message">
+      <h1>ミッション成功</h1>
+      <p>薬を病巣に投下しました！お疲れさまでした！</p>
+    </div>
+
+    <!-- リスタートボタンは下部中央（アバターと重ならない） -->
+    <div id="victory-restart">
+      <button class="btn btn-primary" id="restart-btn">もう一度プレイ</button>
+    </div>
+
+    <!-- QRコードは右端に配置（アバターを隠さない）。クリアタイムはQRコードの上 -->
+    <div id="victory-qr">
+      <div class="victory-stats">
+        <div>⏱ クリアタイム: <span id="victory-time">--:--</span></div>
+        <div>🛡 免疫細胞を回避: <span id="victory-dodges">-</span> 回</div>
+      </div>
+      <canvas id="victory-qr-canvas" width="180" height="180"></canvas>
+      <p class="victory-qr-note">QRコードを読み取ると、このクリア画面をスマホでも見られます</p>
+    </div>
+    
+    <div id="death-message">
+      <h1>免疫細胞に捕捉</h1>
+      <button class="btn btn-primary" id="death-restart-btn">もう一度プレイ</button>
+    </div>
+
+    <div id="notification">
+      <h2></h2>
+    </div>
+
+    <div id="danger-overlay"></div>
+    <div id="danger-label">危険！</div>
+
+    <div id="pause-screen">
+      <h1>ポーズ</h1>
+      <p>Esc キーでゲームを再開</p>
+      <button class="btn btn-primary" id="pause-restart-btn">最初からやり直す</button>
+    </div>
+  </div>
+
+  <!-- Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.js",
+      "gaussian-splats-3d": "https://naruya.github.io/gaussian-vrm/lib/gaussian-splats-3d.module.js",
+      "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm",
+      "gvrm": "https://naruya.github.io/gaussian-vrm/lib/gaussian-vrm.min.js",
+      "qrcode": "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GVRM } from 'gvrm';
+    import QRCode from 'qrcode';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // ============================================
+    // グローバル変数
+    // ============================================
+    let scene, camera, renderer, labelRenderer;
+    let ambientLight = null;
+    let victoryLight = null;
+    let playerAvatar;
+    let selectedPlayerAvatar = null;
+    let currentAnimation = 'idle';
+    let keys = {};
+    let moveSpeed = 5.4;
+    let playerPosition = new THREE.Vector3(0, 0, 12);
+    let playerRotation = 0;
+    
+    let gameState = 'initializing';
+    let isPlayerDead = false;
+    let isPaused = false;
+    
+    // フレームレート非依存のためのタイミング
+    let deltaTime = 0.016;
+    let lastFrameTime = 0;
+    
+    // リセットタイマー
+    let resetTimeoutId = null;
+    
+    // ============================================
+    // クレジット画像設定（手修正用）
+    // この値を変えるだけで表示を調整できます
+    // ============================================
+    const CREDIT_CONFIG = {
+      enabled: true,        // false にすると非表示
+      image: 'credit.png',  // 画像ファイルのパス
+      right: 24,            // 右端からの距離(px)
+      bottom: 176,          // 下端からの距離(px) ※ミニマップ(140px)の下
+      height: 40,           // 表示高さ(px)
+      opacity: 0.45,        // 不透明度 0.0〜1.0
+      zIndex: 95,           // 重なり順（UIは100以上）
+      // プログレスバーの右側に表示するクレジットテキスト（3行）
+      creditText: '全日本AIハッカソン2025優勝作品を修正',
+      creditTextEnabled: true,  // false でテキスト非表示
+      poweredByText: 'Powered by DeepSeek V4 flash 0731',
+      attributionText: 'and Instant Skinned Gaussian Avatars (https://github.com/naruya/gaussian-vrm)'
+    };
+    
+    function applyCreditConfig() {
+      const el = document.getElementById('credit-image');
+      if (el) {
+        if (!CREDIT_CONFIG.enabled) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+          el.src = CREDIT_CONFIG.image;
+          el.style.right = CREDIT_CONFIG.right + 'px';
+          el.style.bottom = CREDIT_CONFIG.bottom + 'px';
+          el.style.height = CREDIT_CONFIG.height + 'px';
+          el.style.opacity = CREDIT_CONFIG.opacity;
+          el.style.zIndex = CREDIT_CONFIG.zIndex;
+        }
+      }
+      
+      // クレジットテキスト（プログレスバーの右側・3行）
+      const textEl = document.getElementById('credit-text');
+      if (textEl) {
+        if (!CREDIT_CONFIG.enabled || !CREDIT_CONFIG.creditTextEnabled || !CREDIT_CONFIG.creditText) {
+          textEl.style.display = 'none';
+        } else {
+          textEl.style.display = 'block';
+          const mainEl = document.getElementById('credit-text-main');
+          if (mainEl) mainEl.textContent = CREDIT_CONFIG.creditText;
+          const poweredEl = document.getElementById('credit-text-powered');
+          if (poweredEl) poweredEl.textContent = CREDIT_CONFIG.poweredByText || '';
+          const sourceEl = document.getElementById('credit-text-source');
+          if (sourceEl) sourceEl.textContent = CREDIT_CONFIG.attributionText || '';
+        }
+      }
+    }
+    
+    // ============================================
+    // 勝利画面設定（手修正用）
+    // ============================================
+    const VICTORY_SCREEN_CONFIG = {
+      enabled: true,
+      // QRコードに入れるURL。空文字なら現在のページURLを使う。
+      // デプロイ先のURLを明示する場合はここに書く（例: 'https://user.github.io/repo/?result=victory'）
+      qrUrl: ''
+    };
+    
+    // クリア統計
+    let victoryStats = { startTime: 0, dodges: 0 };
+    
+    // ============================================
+    // デモプレイモード設定（手修正用）
+    // 無操作が一定時間続くとAIが自動でゲームをクリアします
+    // ============================================
+    const DEMO_CONFIG = {
+      enabled: true,            // false でデモ無効
+      idleSeconds: 20,          // 無操作がこの秒数続いたらデモ開始
+      autoStartAvatar: 'pinocchio', // デモ自動開始時のアバター（gvrm読み込みが速いもの）
+      victoryPauseSeconds: 8,   // クリア後、次のデモまで待つ秒数
+      sprint: true              // デモ中はダッシュで進む
+    };
+    let demoMode = false;
+    let lastInputTime = Date.now();
+    let aiInput = { x: 0, z: 0 };
+    let demoTimerId = null;
+    let demoVictoryRestartId = null;
+    // デモ演出用（顔見せ）：薬を持ったら時々カメラの方へ戻って顔を見せる
+    let demoHadMed = false;
+    let demoNextShowOffAt = Infinity;
+    let demoShowOffUntil = 0;
+    // デモ演出用（ランダムに走り回る）
+    let demoWanderTarget = null;
+    let demoNextWanderAt = 4000;
+    let demoWanderUntil = 0;
+    
+    // ============================================
+    // 難易度（レベル）設定（手修正用）
+    // easy: マクロファージ1 + 白血球1  ← デフォルト
+    // normal: マクロファージ2 + 白血球3
+    // hard: マクロファージ3 + 白血球4
+    // ============================================
+    let selectedLevel = 'easy';
+    const LEVEL_CONFIG = {
+      easy: {
+        label: 'やさしい',
+        macrophages: [
+          { patrolX: -2, patrolZ: -2, rangeX: 4, rangeZ: 4, speed: 0.012 }
+        ],
+        wbcs: [
+          { patrolX: 2, patrolZ: -5, rangeX: 4, rangeZ: 4, speed: 0.016 }
+        ],
+        neutrophils: [
+          { patrolX: -3, patrolZ: 4, rangeX: 3, rangeZ: 3, speed: 0.03 }
+        ],
+        mastCells: [
+          { x: 3.5, z: 2 }
+        ]
+      },
+      normal: {
+        label: 'ふつう',
+        macrophages: [
+          { patrolX: -4, patrolZ: -2, rangeX: 6, rangeZ: 5, speed: 0.015 },
+          { patrolX: 4, patrolZ: -6, rangeX: 6, rangeZ: 5, speed: 0.012 }
+        ],
+        wbcs: [
+          { patrolX: -3, patrolZ: 1, rangeX: 5, rangeZ: 4, speed: 0.02 },
+          { patrolX: 3, patrolZ: -3, rangeX: 5, rangeZ: 4, speed: 0.018 },
+          { patrolX: 0, patrolZ: -7, rangeX: 3, rangeZ: 3, speed: 0.016 }
+        ],
+        neutrophils: [
+          { patrolX: -3, patrolZ: 2, rangeX: 4, rangeZ: 4, speed: 0.03 },
+          { patrolX: 4, patrolZ: -1, rangeX: 4, rangeZ: 4, speed: 0.03 }
+        ],
+        mastCells: [
+          { x: 3.5, z: 5 },
+          { x: -4, z: -5 },
+          { x: 1.5, z: -3 }
+        ]
+      },
+      hard: {
+        label: 'むずかしい',
+        macrophages: [
+          { patrolX: -4, patrolZ: -2, rangeX: 6, rangeZ: 5, speed: 0.017 },
+          { patrolX: 4, patrolZ: -6, rangeX: 6, rangeZ: 5, speed: 0.014 },
+          { patrolX: -1, patrolZ: -8, rangeX: 4, rangeZ: 4, speed: 0.013 }
+        ],
+        wbcs: [
+          { patrolX: -3, patrolZ: 1, rangeX: 6, rangeZ: 5, speed: 0.024 },
+          { patrolX: 3, patrolZ: -3, rangeX: 6, rangeZ: 5, speed: 0.022 },
+          { patrolX: 0, patrolZ: -7, rangeX: 4, rangeZ: 4, speed: 0.02 },
+          { patrolX: -1, patrolZ: 4, rangeX: 4, rangeZ: 4, speed: 0.02 }
+        ],
+        neutrophils: [
+          { patrolX: -3, patrolZ: 2, rangeX: 5, rangeZ: 4, speed: 0.035 },
+          { patrolX: 4, patrolZ: -1, rangeX: 5, rangeZ: 4, speed: 0.035 },
+          { patrolX: -2, patrolZ: -6, rangeX: 4, rangeZ: 3, speed: 0.03 },
+          { patrolX: 2, patrolZ: 5, rangeX: 4, rangeZ: 4, speed: 0.03 }
+        ],
+        mastCells: [
+          { x: 3.5, z: 5 },
+          { x: -4, z: -5 },
+          { x: 1.5, z: -3 },
+          { x: -1.5, z: 1 }
+        ]
+      }
+    };
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    
+    async function generateVictoryQR() {
+      const canvas = document.getElementById('victory-qr-canvas');
+      if (!canvas) return;
+      const base = VICTORY_SCREEN_CONFIG.qrUrl || (location.origin + location.pathname + '?result=victory');
+      try {
+        await QRCode.toCanvas(canvas, base, {
+          width: 180,
+          margin: 2,
+          color: { dark: '#ffffff', light: '#00000000' }
+        });
+      } catch (e) {
+        console.warn('QR生成エラー:', e);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('QR生成に失敗しました', 10, canvas.height / 2);
+      }
+    }
+    
+    // ワールド境界
+    const WORLD_BOUNDS = { xMin: -9, xMax: 9, zMin: -13, zMax: 14 };
+    
+    // ミッション関連
+    let hasMedicine = false;
+    let medicineItem = null;
+    let diseaseFocus = null;
+    let enemies = [];
+    
+    // 3Dオブジェクト
+    let trashObjects = [];
+    
+    // APIキー
+    let geminiApiKey = '';
+    let whisperApiKey = '';
+    
+    // WEBカメラ関連
+    let webcamStream = null;
+    let capturedFaceImage = null;
+    
+    // 体内環境
+    let bodyParticles = [];
+    // 浮遊する赤血球
+    let redBloodCells = [];
+    
+    function initSettingsUI() {
+      geminiApiKey = localStorage.getItem('gemini_api_key') || '';
+      whisperApiKey = localStorage.getItem('whisper_api_key') || '';
+      
+      if (geminiApiKey) document.getElementById('gemini-api-key').value = geminiApiKey;
+      if (whisperApiKey) document.getElementById('whisper-api-key').value = whisperApiKey;
+      
+      document.getElementById('settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.add('active');
+      });
+      
+      document.getElementById('close-settings').addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.remove('active');
+      });
+      
+      document.getElementById('save-settings').addEventListener('click', () => {
+        geminiApiKey = document.getElementById('gemini-api-key').value;
+        whisperApiKey = document.getElementById('whisper-api-key').value;
+        localStorage.setItem('gemini_api_key', geminiApiKey);
+        localStorage.setItem('whisper_api_key', whisperApiKey);
+        document.getElementById('settings-modal').classList.remove('active');
+      });
+    }
+    
+    // ============================================
+    // Three.js初期化
+    // ============================================
+    function initThreeJS() {
+      const container = document.getElementById('canvas-container');
+      if (!container) throw new Error('canvas-container要素が見つかりません');
+      
+      while (container.firstChild) container.removeChild(container.firstChild);
+      
+      if (scene) {
+        while (scene.children.length > 0) {
+          const obj = scene.children[0];
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(mat => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if (obj.material.map) obj.material.map.dispose();
+              obj.material.dispose();
+            }
+          }
+          scene.remove(obj);
+        }
+      }
+      
+      if (renderer) {
+        try {
+          if (renderer.domElement && renderer.domElement.parentNode) {
+            renderer.domElement.parentNode.removeChild(renderer.domElement);
+          }
+          renderer.dispose();
+        } catch (e) {}
+        renderer = null;
+      }
+      
+      if (labelRenderer) {
+        try {
+          if (labelRenderer.domElement && labelRenderer.domElement.parentNode) {
+            labelRenderer.domElement.parentNode.removeChild(labelRenderer.domElement);
+          }
+        } catch (e) {}
+        labelRenderer = null;
+      }
+      
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a0a0a);
+            scene.fog = new THREE.Fog(0x1a0a0a, 15, 35);
+            
+            camera = new THREE.PerspectiveCamera(65, width / height, 0.01, 1000);
+            camera.position.set(0, 2, 17);
+            camera.lookAt(0, 1, 12);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+            
+            // ワールド内ラベル用のCSS2Dレンダラー
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(width, height);
+            labelRenderer.domElement.style.position = 'fixed';
+            labelRenderer.domElement.style.top = '0';
+            labelRenderer.domElement.style.left = '0';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            labelRenderer.domElement.style.zIndex = '90';
+            container.appendChild(labelRenderer.domElement);
+            
+            // 生体内の暖かい照明
+            ambientLight = new THREE.AmbientLight(0x664455, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffccaa, 0.6);
+            directionalLight.position.set(5, 8, 5);
+            scene.add(directionalLight);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xff8866, 0.3);
+            directionalLight2.position.set(-5, 5, -5);
+            scene.add(directionalLight2);
+            
+            // 体内環境の作成
+            createBodyEnvironment();
+            
+            // 地面（筋肉組織風）
+            const floorGeometry = new THREE.PlaneGeometry(50, 50);
+            const floorMaterial = new THREE.MeshStandardMaterial({
+              color: 0x4a2a2a,
+              roughness: 0.8,
+              metalness: 0.0,
+              emissive: 0x2a1010,
+              emissiveIntensity: 0.3
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            scene.add(floor);
+            
+            // 道（毛細血管風）
+            const pathGeometry = new THREE.PlaneGeometry(6, 30);
+            const pathMaterial = new THREE.MeshStandardMaterial({
+              color: 0x5a2222,
+              roughness: 0.6,
+              metalness: 0.0,
+              emissive: 0x3a1010,
+              emissiveIntensity: 0.4
+            });
+            const path = new THREE.Mesh(pathGeometry, pathMaterial);
+            path.rotation.x = -Math.PI / 2;
+            path.position.set(0, 0.01, -8);
+            scene.add(path);
+            
+            const resizeHandler = () => {
+              if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+              }
+            };
+            window.removeEventListener('resize', resizeHandler);
+            window.addEventListener('resize', resizeHandler);
+            
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, 300);
+      });
+    }
+    
+    // ============================================
+    // 体内環境の作成
+    // ============================================
+    function createBodyEnvironment() {
+      // 細胞壁のような壁
+      const wallPositions = [
+        { x: -10, z: -12 }, { x: 10, z: -12 },
+        { x: -10, z: 15 }, { x: 10, z: 15 }
+      ];
+      
+      wallPositions.forEach(pos => {
+        const wallGeo = new THREE.BoxGeometry(0.3, 4, 6);
+        const wallMat = new THREE.MeshStandardMaterial({
+          color: 0x5a3a3a,
+          roughness: 0.9,
+          metalness: 0.0,
+          transparent: true,
+          opacity: 0.4,
+          emissive: 0x3a1a1a,
+          emissiveIntensity: 0.2
+        });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.set(pos.x, 2, pos.z);
+        scene.add(wall);
+      });
+      
+      // 奥の壁
+      const backWallGeo = new THREE.BoxGeometry(20, 4, 0.3);
+      const backWallMat = new THREE.MeshStandardMaterial({
+        color: 0x5a3a3a,
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.3,
+        emissive: 0x3a1a1a,
+        emissiveIntensity: 0.2
+      });
+      const backWall = new THREE.Mesh(backWallGeo, backWallMat);
+      backWall.position.set(0, 2, -14);
+      scene.add(backWall);
+      
+      // 床面の毛細血管模様（赤い線）
+      for (let i = 0; i < 15; i++) {
+        const veinMat = new THREE.MeshStandardMaterial({
+          color: 0x6a2222,
+          emissive: 0x4a1111,
+          emissiveIntensity: 0.3,
+          transparent: true,
+          opacity: 0.3 + Math.random() * 0.3
+        });
+        const vein = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 2 + Math.random() * 4, 4), veinMat);
+        vein.rotation.x = Math.PI / 2;
+        vein.rotation.z = Math.random() * Math.PI;
+        vein.position.set(
+          (Math.random() - 0.5) * 20,
+          0.005,
+          (Math.random() - 0.5) * 30 - 5
+        );
+        scene.add(vein);
+      }
+      
+      // 浮遊するタンパク質や細胞外マトリックス状のパーティクル
+      const particleCount = 1000;
+      const particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      const sizes = new Float32Array(particleCount);
+      
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 50;
+        positions[i * 3 + 1] = Math.random() * 6 + 0.5;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 50 - 5;
+        sizes[i] = 0.02 + Math.random() * 0.06;
+        const hue = 0.9 + Math.random() * 0.15;
+        const c = new THREE.Color().setHSL(hue, 0.5, 0.4 + Math.random() * 0.2);
+        colors[i * 3] = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      }
+      
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      
+      const particleMat = new THREE.PointsMaterial({
+        size: 0.03,
+        transparent: true,
+        opacity: 0.5,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+      });
+      
+      const particles = new THREE.Points(particleGeo, particleMat);
+      scene.add(particles);
+      bodyParticles.push(particles);
+      
+      createRedBloodCells();
+    }
+    
+    // ============================================
+    // ワールド内ラベル（CSS2D）
+    // ============================================
+    function makeWorldLabel(text, color, extraClass = '') {
+      const div = document.createElement('div');
+      div.className = 'world-label ' + extraClass;
+      if (color) div.style.color = color;
+      div.textContent = text;
+      return new CSS2DObject(div);
+    }
+    
+    // ============================================
+    // 浮遊する赤血球（上部と下部にのみ配置）
+    // プレイヤーの視界（y=0.5〜5あたり）を塞がないように
+    // ============================================
+    function createRedBloodCells() {
+      const rbcMat = new THREE.MeshStandardMaterial({
+        color: 0xcc3333,
+        roughness: 0.5,
+        transparent: true,
+        opacity: 0.85,
+        emissive: 0x661111,
+        emissiveIntensity: 0.25
+      });
+      
+      const placeBand = (yMin, yMax, count) => {
+        for (let i = 0; i < count; i++) {
+          const rbc = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.09, 8, 18), rbcMat);
+          rbc.position.set(
+            (Math.random() - 0.5) * 22,
+            yMin + Math.random() * (yMax - yMin),
+            (Math.random() - 0.5) * 26 - 1
+          );
+          rbc.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+          scene.add(rbc);
+          rbc.userData.baseX = rbc.position.x;
+          rbc.userData.baseY = rbc.position.y;
+          rbc.userData.baseZ = rbc.position.z;
+          rbc.userData.phase = Math.random() * Math.PI * 2;
+          rbc.userData.speed = 0.2 + Math.random() * 0.3;
+          redBloodCells.push(rbc);
+        }
+      };
+      
+      placeBand(5.0, 6.5, 10);   // 上部（天井側）
+      placeBand(0.05, 0.5, 8);   // 下部（床側）
+    }
+    
+    // ============================================
+    // 薬の作成
+    // ============================================
+    function createMedicine() {
+      if (medicineItem) return;
+      
+      const group = new THREE.Group();
+      
+      // カプセル本体（緑色の発光カプセル）
+      const capsuleGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.6, 12);
+      const capsuleMat = new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        emissive: 0x00ff88,
+        emissiveIntensity: 1.0,
+        roughness: 0.2,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.9
+      });
+      const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
+      capsule.position.y = 0.3;
+      capsule.rotation.z = Math.PI / 2;
+      group.add(capsule);
+      
+      // カプセルのキャップ
+      const capGeo = new THREE.SphereGeometry(0.25, 12, 12);
+      const capMat = new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        emissive: 0x00ff88,
+        emissiveIntensity: 1.0,
+        roughness: 0.2,
+        metalness: 0.1
+      });
+      const capLeft = new THREE.Mesh(capGeo, capMat);
+      capLeft.position.set(-0.3, 0.3, 0);
+      group.add(capLeft);
+      
+      const capRight = new THREE.Mesh(capGeo, capMat);
+      capRight.position.set(0.3, 0.3, 0);
+      group.add(capRight);
+      
+      // 光の輪（リング）
+      const ringGeo = new THREE.TorusGeometry(0.4, 0.02, 8, 16);
+      const ringMat = new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        emissive: 0x00ff88,
+        emissiveIntensity: 1.5,
+        transparent: true,
+        opacity: 0.6
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.y = 0.3;
+      ring.rotation.x = Math.PI / 2;
+      group.add(ring);
+      
+      // スポットライト（薬を照らす）
+      const spotLight = new THREE.PointLight(0x00ff88, 1, 3);
+      spotLight.position.set(0, 1.5, 0);
+      group.add(spotLight);
+      
+      // 薬のラベル
+      const medicineLabel = makeWorldLabel('💊 薬', '#7dffc2');
+      medicineLabel.position.set(0, 1.6, 0);
+      group.add(medicineLabel);
+      
+      group.position.set(0, 0, 8);
+      scene.add(group);
+      
+      medicineItem = {
+        group: group,
+        position: new THREE.Vector3(0, 0, 8),
+        collected: false,
+        ring: ring,
+        light: spotLight,
+        time: 0
+      };
+      
+      console.log('✓ 薬を作成しました');
+    }
+    
+    // ============================================
+    // 病巣の作成
+    // ============================================
+    async function createDiseaseFocus() {
+      if (diseaseFocus) return;
+      
+      const group = new THREE.Group();
+      
+      // 病巣のテクスチャ画像を試す
+      const textureLoader = new THREE.TextureLoader();
+      let mainMat;
+      
+      try {
+        const tex = await textureLoader.loadAsync('Lesion.png');
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        mainMat = new THREE.MeshStandardMaterial({
+          map: tex,
+          color: 0xffffff,
+          roughness: 0.7,
+          metalness: 0.0
+        });
+      } catch (e) {
+        mainMat = new THREE.MeshStandardMaterial({
+          color: 0xcc2200,
+          emissive: 0xcc2200,
+          emissiveIntensity: 0.6,
+          roughness: 0.5,
+          metalness: 0.1
+        });
+      }
+      
+      // 病巣の本体 — 平面テクスチャをそのまま表示（ランドスケープ）
+      const mainGeo = new THREE.PlaneGeometry(4, 3);
+      const main = new THREE.Mesh(mainGeo, mainMat);
+      main.position.y = 1.5;
+      main.rotation.x = -Math.PI / 4;
+      group.add(main);
+      
+      // 裏面も表示
+      const backMat = mainMat.clone();
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), backMat);
+      back.position.y = 1.5;
+      back.rotation.x = Math.PI * 3 / 4;
+      group.add(back);
+      
+      // 発光オーラ（背景光）
+      const auraMat = new THREE.MeshStandardMaterial({
+        color: 0xff4400,
+        emissive: 0xff4400,
+        emissiveIntensity: 0.4,
+        transparent: true,
+        opacity: 0.12,
+        roughness: 0.1,
+        metalness: 0.0,
+        side: THREE.BackSide
+      });
+      const aura = new THREE.Mesh(new THREE.SphereGeometry(3.0, 16, 16), auraMat);
+      aura.position.y = 1.5;
+      group.add(aura);
+      
+      // 周囲の突起（不規則な形状）
+      for (let i = 0; i < 12; i++) {
+        const size = 0.3 + Math.random() * 0.5;
+        const bumpGeo = new THREE.SphereGeometry(size, 10, 10);
+        const bumpMat = new THREE.MeshStandardMaterial({
+          color: 0xaa1100,
+          emissive: 0xaa1100,
+          emissiveIntensity: 0.4,
+          roughness: 0.6
+        });
+        const bump = new THREE.Mesh(bumpGeo, bumpMat);
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        const radius = 1.5 + size * 0.5;
+        bump.position.set(
+          Math.sin(phi) * Math.cos(theta) * radius,
+          Math.sin(phi) * Math.sin(theta) * radius + 1.5,
+          Math.cos(phi) * radius
+        );
+        group.add(bump);
+      }
+      
+      // 感染した組織（周囲の変色）
+      for (let i = 0; i < 5; i++) {
+        const tissueGeo = new THREE.CircleGeometry(0.8 + Math.random() * 0.5, 12);
+        const tissueMat = new THREE.MeshStandardMaterial({
+          color: 0x662200,
+          emissive: 0x442200,
+          emissiveIntensity: 0.3,
+          roughness: 0.9,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.5
+        });
+        const tissue = new THREE.Mesh(tissueGeo, tissueMat);
+        tissue.rotation.x = -Math.PI / 2;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1.8 + Math.random() * 1.0;
+        tissue.position.set(
+          Math.cos(angle) * dist,
+          0.02,
+          Math.sin(angle) * dist
+        );
+        group.add(tissue);
+      }
+      
+      // パルスライト
+      const pulseLight = new THREE.PointLight(0xff2200, 2.5, 12);
+      pulseLight.position.set(0, 3, 0);
+      group.add(pulseLight);
+      
+      // 上空からのスポットライト（目立たせる）
+      const spotLight = new THREE.SpotLight(0xff4400, 0.5, 15, Math.PI / 4, 0.5, 1);
+      spotLight.position.set(0, 8, -12);
+      spotLight.target.position.set(0, 0, -12);
+      group.add(spotLight);
+      scene.add(spotLight.target);
+      
+      // 光柱（ビーコン）— 遠くからでも病巣が分かる
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: 0xff3300,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.6, 14, 16, 1, true), beamMat);
+      beam.position.y = 7;
+      group.add(beam);
+      
+      // 病巣を示す大きな矢印（上空で回転する）
+      const arrowMat = new THREE.MeshStandardMaterial({
+        color: 0xff3300,
+        emissive: 0xff2200,
+        emissiveIntensity: 1.0,
+        roughness: 0.3
+      });
+      const arrowGroup = new THREE.Group();
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 4.0, 8), arrowMat);
+      pole.position.y = 2.0;
+      arrowGroup.add(pole);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.4, 16), arrowMat);
+      cone.position.y = -0.4;
+      cone.rotation.x = Math.PI;
+      arrowGroup.add(cone);
+      arrowGroup.position.set(0, 7.8, 0);
+      group.add(arrowGroup);
+      
+      // 床の標的リング（二重）
+      const floorRingMat = new THREE.MeshBasicMaterial({
+        color: 0xff4422,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const floorRing = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.9, 32), floorRingMat);
+      floorRing.rotation.x = -Math.PI / 2;
+      floorRing.position.y = 0.05;
+      group.add(floorRing);
+      
+      const floorRingOuterMat = floorRingMat.clone();
+      floorRingOuterMat.opacity = 0.35;
+      const floorRingOuter = new THREE.Mesh(new THREE.RingGeometry(2.2, 3.0, 32), floorRingOuterMat);
+      floorRingOuter.rotation.x = -Math.PI / 2;
+      floorRingOuter.position.y = 0.04;
+      group.add(floorRingOuter);
+      
+      // 病巣ラベル
+      const lesionLabel = makeWorldLabel('⚠ 病巣', '#ff8877', 'lesion-label');
+      lesionLabel.position.set(0, 9.5, 0);
+      group.add(lesionLabel);
+      
+      group.position.set(0, 0, -12);
+      scene.add(group);
+      
+      diseaseFocus = {
+        group: group,
+        position: new THREE.Vector3(0, 0, -12),
+        light: pulseLight,
+        spotLight: spotLight,
+        aura: aura,
+        beam: beam,
+        arrow: arrowGroup,
+        floorRing: floorRing,
+        floorRingOuter: floorRingOuter,
+        time: 0,
+        depositRadius: 3.5
+      };
+      
+      console.log('✓ 病巣を作成しました');
+    }
+    
+    // ============================================
+    // 敵（免疫細胞）の作成
+    // ============================================
+    function createEnemies() {
+      // 難易度に応じた敵の配置
+      const levelCfg = LEVEL_CONFIG[selectedLevel] || LEVEL_CONFIG.easy;
+      const macrophageConfigs = levelCfg.macrophages;
+      
+      macrophageConfigs.forEach(config => {
+        const group = new THREE.Group();
+        
+        // マクロファージの本体 — 大きな不規則な塊 + 目立つ緑色
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x44dd44,
+          emissive: 0x22aa22,
+          emissiveIntensity: 0.3,
+          roughness: 0.6,
+          metalness: 0.0,
+          transparent: true,
+          opacity: 0.9
+        });
+        const bodyGroup = new THREE.Group();
+        const mainPart = new THREE.Mesh(new THREE.SphereGeometry(1.0, 14, 14), bodyMat);
+        mainPart.scale.set(1.2, 0.8, 1.0);
+        mainPart.position.y = 0.7;
+        bodyGroup.add(mainPart);
+        for (let i = 0; i < 8; i++) {
+          const sub = new THREE.Mesh(new THREE.SphereGeometry(0.2 + Math.random() * 0.25, 8, 8), bodyMat);
+          const angle = Math.random() * Math.PI * 2;
+          const elev = (Math.random() - 0.5) * 0.6;
+          sub.position.set(Math.cos(angle) * (0.6 + Math.random() * 0.3), 0.7 + elev, Math.sin(angle) * (0.6 + Math.random() * 0.3));
+          bodyGroup.add(sub);
+        }
+        group.add(bodyGroup);
+        
+        // 偽足 — 長く目立つ突起
+        const pseudoMat = new THREE.MeshStandardMaterial({
+          color: 0x55ee55,
+          emissive: 0x33cc33,
+          emissiveIntensity: 0.2,
+          roughness: 0.7
+        });
+        for (let i = 0; i < 8; i++) {
+          const len = 0.4 + Math.random() * 0.6;
+          const thick = 0.07 + Math.random() * 0.1;
+          const pseudo = new THREE.Mesh(new THREE.CylinderGeometry(thick * 0.4, thick, len, 6), pseudoMat);
+          const angle = Math.random() * Math.PI * 2;
+          const tilt = (Math.random() - 0.5) * 0.6;
+          pseudo.position.set(Math.cos(angle) * 0.7, 0.4 + tilt * 0.3, Math.sin(angle) * 0.7);
+          pseudo.rotation.z = Math.cos(angle) * 0.6;
+          pseudo.rotation.x = Math.sin(angle) * 0.6;
+          group.add(pseudo);
+        }
+        
+        // 核（暗い濃緑）
+        const nucleusMat = new THREE.MeshStandardMaterial({
+          color: 0x226622,
+          emissive: 0x114411,
+          emissiveIntensity: 0.5,
+          roughness: 0.3
+        });
+        const n1 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), nucleusMat);
+        n1.position.set(-0.1, 0.72, 0.08);
+        group.add(n1);
+        const n2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), nucleusMat);
+        n2.position.set(0.1, 0.68, -0.06);
+        group.add(n2);
+        
+        // 名前ラベル
+        const label = makeWorldLabel('マクロファージ', '#7dff7d', 'enemy-label');
+        label.position.y = 2.3;
+        group.add(label);
+        
+        group.position.set(config.patrolX, 0, config.patrolZ);
+        scene.add(group);
+        
+        enemies.push({
+          group: group,
+          position: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          type: 'macrophage',
+          patrolCenter: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          patrolRange: new THREE.Vector3(config.rangeX, 0, config.rangeZ),
+          speed: config.speed,
+          phase: Math.random() * Math.PI * 2,
+          detectRadius: 1.0,
+          body: mainPart,
+          emissiveBase: 0x22aa22,
+          time: 0,
+          chasing: false
+        });
+      });
+      
+      // 白血球（小型、高速）— 常にゆっくり広範囲を動く
+      const wbcConfigs = levelCfg.wbcs;
+      
+      wbcConfigs.forEach(config => {
+        const group = new THREE.Group();
+        
+        // 白血球の本体 — 明るい青白で発光
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0xaaaaff,
+          emissive: 0x6666ff,
+          emissiveIntensity: 0.4,
+          roughness: 0.3,
+          metalness: 0.0,
+          transparent: true,
+          opacity: 0.85
+        });
+        const bodyGroup = new THREE.Group();
+        const main = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 14), bodyMat);
+        main.position.y = 0.4;
+        bodyGroup.add(main);
+        for (let i = 0; i < 15; i++) {
+          const bump = new THREE.Mesh(new THREE.SphereGeometry(0.035 + Math.random() * 0.05, 6, 6), bodyMat);
+          const angle = Math.random() * Math.PI * 2;
+          const elev = Math.random() * Math.PI;
+          bump.position.set(
+            Math.sin(elev) * Math.cos(angle) * 0.5,
+            Math.sin(elev) * Math.sin(angle) * 0.5 + 0.4,
+            Math.cos(elev) * 0.5
+          );
+          bodyGroup.add(bump);
+        }
+        group.add(bodyGroup);
+        
+        // 分葉核 — 明るい青紫
+        const nucleusMat = new THREE.MeshStandardMaterial({
+          color: 0x4444cc,
+          emissive: 0x2222aa,
+          emissiveIntensity: 0.4,
+          roughness: 0.2
+        });
+        const lobes = [
+          { x: -0.1, y: 0.42, z: 0.06, r: 0.1 },
+          { x: 0.08, y: 0.38, z: -0.07, r: 0.09 },
+          { x: -0.02, y: 0.34, z: 0.12, r: 0.08 }
+        ];
+        lobes.forEach(l => {
+          const lobe = new THREE.Mesh(new THREE.SphereGeometry(l.r, 8, 8), nucleusMat);
+          lobe.position.set(l.x, l.y, l.z);
+          group.add(lobe);
+        });
+        
+        // 表面受容体 — 多数の光る点
+        for (let i = 0; i < 16; i++) {
+          const recMat = new THREE.MeshStandardMaterial({
+            color: 0x8888ff,
+            emissive: 0x6666ff,
+            emissiveIntensity: 0.8
+          });
+          const rec = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), recMat);
+          const angle = Math.random() * Math.PI * 2;
+          const elev = Math.random() * Math.PI;
+          rec.position.set(
+            Math.sin(elev) * Math.cos(angle) * 0.52,
+            Math.sin(elev) * Math.sin(angle) * 0.52 + 0.4,
+            Math.cos(elev) * 0.52
+          );
+          group.add(rec);
+        }
+        
+        // 名前ラベル
+        const label = makeWorldLabel('白血球', '#99ccff', 'enemy-label');
+        label.position.y = 1.6;
+        group.add(label);
+        
+        group.position.set(config.patrolX, 0, config.patrolZ);
+        scene.add(group);
+        
+        enemies.push({
+          group: group,
+          position: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          type: 'wbc',
+          patrolCenter: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          patrolRange: new THREE.Vector3(config.rangeX, 0, config.rangeZ),
+          speed: config.speed,
+          phase: Math.random() * Math.PI * 2,
+          detectRadius: 0.7,
+          body: main,
+          emissiveBase: 0x6666ff,
+          time: 0,
+          chasing: false
+        });
+      });
+      
+      // 好中球（小型・高速・淡い紫色、分葉核が特徴）— 群れて最前線で襲う
+      const neutrophilConfigs = levelCfg.neutrophils || [];
+      neutrophilConfigs.forEach(config => {
+        const group = new THREE.Group();
+        
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0xddc4ff,
+          emissive: 0x5544aa,
+          emissiveIntensity: 0.35,
+          roughness: 0.3,
+          transparent: true,
+          opacity: 0.9
+        });
+        const main = new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 14), bodyMat);
+        main.position.y = 0.35;
+        group.add(main);
+        
+        // 分葉核（好中球は核がいくつにも分かれる）
+        const nucleusMat = new THREE.MeshStandardMaterial({
+          color: 0x7744cc,
+          emissive: 0x5522aa,
+          emissiveIntensity: 0.5,
+          roughness: 0.2
+        });
+        const lobes = [
+          { x: -0.08, y: 0.37, z: 0.05, r: 0.09 },
+          { x: 0.07, y: 0.34, z: -0.05, r: 0.08 },
+          { x: -0.01, y: 0.31, z: 0.1, r: 0.07 }
+        ];
+        lobes.forEach(l => {
+          const lobe = new THREE.Mesh(new THREE.SphereGeometry(l.r, 8, 8), nucleusMat);
+          lobe.position.set(l.x, l.y, l.z);
+          group.add(lobe);
+        });
+        
+        // 顆粒（小さな粒）
+        const granuleMat = new THREE.MeshStandardMaterial({
+          color: 0xffccaa,
+          emissive: 0xaa6644,
+          emissiveIntensity: 0.3
+        });
+        for (let i = 0; i < 10; i++) {
+          const g = new THREE.Mesh(new THREE.SphereGeometry(0.02 + Math.random() * 0.02, 6, 6), granuleMat);
+          const angle = Math.random() * Math.PI * 2;
+          const elev = Math.random() * Math.PI;
+          g.position.set(
+            Math.sin(elev) * Math.cos(angle) * 0.36,
+            Math.sin(elev) * Math.sin(angle) * 0.36 + 0.35,
+            Math.cos(elev) * 0.36
+          );
+          group.add(g);
+        }
+        
+        // 名前ラベル
+        const label = makeWorldLabel('好中球', '#e6c9ff', 'enemy-label');
+        label.position.y = 1.1;
+        group.add(label);
+        
+        group.position.set(config.patrolX, 0, config.patrolZ);
+        scene.add(group);
+        
+        enemies.push({
+          group: group,
+          position: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          type: 'neutrophil',
+          patrolCenter: new THREE.Vector3(config.patrolX, 0, config.patrolZ),
+          patrolRange: new THREE.Vector3(config.rangeX, 0, config.rangeZ),
+          speed: config.speed,
+          phase: Math.random() * Math.PI * 2,
+          detectRadius: 0.5,
+          body: main,
+          emissiveBase: 0x5544aa,
+          time: 0,
+          chasing: false
+        });
+      });
+      
+      // マスト細胞（大型・静止・設置型トラップ）
+      // 薬を持ったプレイヤーが近づくと爆発する
+      const mastConfigs = levelCfg.mastCells || [];
+      mastConfigs.forEach(config => {
+        const group = new THREE.Group();
+        
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0xff8866,
+          emissive: 0xaa4422,
+          emissiveIntensity: 0.3,
+          roughness: 0.6,
+          transparent: true,
+          opacity: 0.9
+        });
+        const main = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 14), bodyMat);
+        main.position.y = 0.55;
+        group.add(main);
+        
+        // 顆粒（マスト細胞は顆粒だらけ）
+        const granuleMat = new THREE.MeshStandardMaterial({
+          color: 0xaa2200,
+          emissive: 0x661100,
+          emissiveIntensity: 0.4,
+          roughness: 0.5
+        });
+        for (let i = 0; i < 14; i++) {
+          const g = new THREE.Mesh(new THREE.SphereGeometry(0.06 + Math.random() * 0.05, 8, 8), granuleMat);
+          const angle = Math.random() * Math.PI * 2;
+          const elev = Math.random() * Math.PI;
+          g.position.set(
+            Math.sin(elev) * Math.cos(angle) * 0.6,
+            Math.sin(elev) * Math.sin(angle) * 0.6 + 0.55,
+            Math.cos(elev) * 0.6
+          );
+          group.add(g);
+        }
+        
+        // 名前ラベル
+        const label = makeWorldLabel('マスト細胞', '#ffaa88', 'enemy-label');
+        label.position.y = 1.7;
+        group.add(label);
+        
+        group.position.set(config.x, 0, config.z);
+        scene.add(group);
+        
+        enemies.push({
+          group: group,
+          position: new THREE.Vector3(config.x, 0, config.z),
+          type: 'mast',
+          patrolCenter: new THREE.Vector3(config.x, 0, config.z),
+          patrolRange: new THREE.Vector3(0, 0, 0),
+          speed: 0,
+          phase: 0,
+          detectRadius: 0,
+          body: main,
+          emissiveBase: 0xaa4422,
+          time: 0,
+          chasing: false,
+          explodeRadius: 2.2,
+          exploded: false
+        });
+      });
+      
+      console.log(`✓ ${enemies.length}体の免疫細胞を作成しました`);
+    }
+    
+    // ============================================
+    // ゴミ箱と障害物
+    // ============================================
+    function createTrash() {
+      trashObjects.forEach(trash => {
+        scene.remove(trash);
+        trash.children.forEach(child => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => mat.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        });
+      });
+      trashObjects = [];
+      
+      const trashPositions = [
+        { x: -5, z: 5 }, { x: 5, z: 5 }, { x: -6, z: -2 }, { x: 6, z: -2 },
+        { x: -3, z: 10 }, { x: 3, z: 10 }, { x: -4, z: -8 }, { x: 4, z: -8 },
+        { x: -2, z: 3 }, { x: 2, z: 3 }, { x: -7, z: 1 }, { x: 7, z: 1 },
+        { x: -3, z: 7 }, { x: 3, z: 7 }, { x: -2, z: -4 }
+      ];
+      
+      // 組織片や細胞残留物としての障害物
+      trashPositions.forEach(pos => {
+        const trashGroup = new THREE.Group();
+        
+        const isRound = Math.random() > 0.5;
+        if (isRound) {
+          const geo = new THREE.SphereGeometry(0.25 + Math.random() * 0.15, 8, 8);
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0x664466,
+            roughness: 0.8,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x442244,
+            emissiveIntensity: 0.1
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.y = 0.2;
+          trashGroup.add(mesh);
+        } else {
+          const geo = new THREE.BoxGeometry(0.3 + Math.random() * 0.2, 0.2 + Math.random() * 0.3, 0.3 + Math.random() * 0.2);
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0x554466,
+            roughness: 0.8,
+            transparent: true,
+            opacity: 0.5
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.y = 0.2;
+          mesh.rotation.set(Math.random() * 0.5, Math.random() * 2, Math.random() * 0.5);
+          trashGroup.add(mesh);
+        }
+        
+        trashGroup.position.set(pos.x, 0, pos.z);
+        scene.add(trashGroup);
+        trashObjects.push(trashGroup);
+      });
+    }
+    
+    // ============================================
+    // 敵の更新
+    // ============================================
+    function updateEnemies() {
+      if (isPlayerDead) return;
+      
+      const frameScale = deltaTime * 60;
+      
+      enemies.forEach(enemy => {
+        enemy.time += 0.01 * frameScale;
+        
+        // マスト細胞：静止したトラップ。薬を持ったプレイヤーが近づくと爆発
+        if (enemy.type === 'mast') {
+          enemy.group.position.set(enemy.position.x, 0, enemy.position.z);
+          if (enemy.body) {
+            // 近づくほど脈動が速くなる（警告）
+            const d = playerPosition.distanceTo(enemy.position);
+            const rate = d < 5 ? 8 : 3;
+            const pulse = 1 + Math.sin(enemy.time * rate) * 0.08;
+            enemy.body.scale.set(pulse, pulse, pulse);
+            if (enemy.body.material) {
+              enemy.body.material.emissive.setHex(0xff5533);
+              enemy.body.material.emissiveIntensity = d < 5 ? 0.8 : 0.3;
+            }
+          }
+          if (enemiesVisible && hasMedicine && !isPlayerDead && !demoMode) {
+            const d = playerPosition.distanceTo(enemy.position);
+            if (d < enemy.explodeRadius && !enemy.exploded) {
+              enemy.exploded = true;
+              createMastExplosion(enemy.position.clone());
+              killPlayer();
+            }
+          }
+          return;
+        }
+        
+        const distToPlayer = playerPosition.distanceTo(enemy.position);
+        const hasMed = hasMedicine && !isPlayerDead;
+        
+        // 警戒範囲（好中球は特に敏感）
+        const alertRange = enemy.type === 'macrophage' ? 7 : (enemy.type === 'neutrophil' ? 9 : 8);
+        const chasing = enemiesVisible && hasMed && distToPlayer < alertRange;
+        const wasChasing = enemy.chasing;
+        enemy.chasing = chasing;
+        
+        // 追跡から逃れた回数をカウント（回避統計）
+        if (wasChasing && !chasing && !isPlayerDead && hasMed) {
+          victoryStats.dodges++;
+        }
+        
+        if (chasing) {
+          const dx = playerPosition.x - enemy.position.x;
+          const dz = playerPosition.z - enemy.position.z;
+          const len = Math.sqrt(dx * dx + dz * dz) || 1;
+          // 好中球は最も速い
+          const chaseSpeed = (enemy.type === 'macrophage' ? 1.5 : enemy.type === 'neutrophil' ? 3.0 : 2.3) * deltaTime;
+          enemy.position.x += (dx / len) * chaseSpeed;
+          enemy.position.z += (dz / len) * chaseSpeed;
+          enemy.group.lookAt(playerPosition.x, 0, playerPosition.z);
+        } else {
+          // パトロール移動（リサージュ曲線風）
+          const phaseX = enemy.time * enemy.speed * 20 + enemy.phase;
+          const phaseZ = enemy.time * enemy.speed * 15 + enemy.phase * 1.3;
+          
+          const targetX = enemy.patrolCenter.x + Math.sin(phaseX) * enemy.patrolRange.x;
+          const targetZ = enemy.patrolCenter.z + Math.cos(phaseZ) * enemy.patrolRange.z;
+          
+          const lerp = 0.02 * frameScale;
+          enemy.position.x += (targetX - enemy.position.x) * lerp;
+          enemy.position.z += (targetZ - enemy.position.z) * lerp;
+          
+          enemy.group.rotation.y += 0.005 * frameScale;
+        }
+        
+        enemy.position.x = Math.max(WORLD_BOUNDS.xMin - 1, Math.min(WORLD_BOUNDS.xMax + 1, enemy.position.x));
+        enemy.position.z = Math.max(WORLD_BOUNDS.zMin - 1, Math.min(WORLD_BOUNDS.zMax + 1, enemy.position.z));
+        
+        enemy.group.position.set(enemy.position.x, 0, enemy.position.z);
+        
+        // 膨張収縮アニメーション（追跡中は速く・大きく）
+        if (enemy.body) {
+          const rate = chasing ? 6 : 3;
+          const amp = chasing ? 0.12 : 0.05;
+          const pulse = 1 + Math.sin(enemy.time * rate) * amp;
+          enemy.body.scale.set(pulse, pulse, pulse);
+        }
+        
+        // 追跡中の敵を赤く強調
+        if (enemy.body && enemy.body.material) {
+          if (chasing) {
+            enemy.body.material.emissive.setHex(0xff2244);
+            enemy.body.material.emissiveIntensity = 0.8;
+          } else {
+            enemy.body.material.emissive.setHex(enemy.emissiveBase || 0x222222);
+            enemy.body.material.emissiveIntensity = enemy.type === 'macrophage' ? 0.3 : 0.4;
+          }
+        }
+        
+        // プレイヤーとの接触判定（非表示中は判定しない・デモ中は無敵）
+        if (enemiesVisible && !demoMode) {
+          if (distToPlayer < enemy.detectRadius && hasMedicine) {
+            killPlayer();
+          }
+        }
+      });
+    }
+    
+    // ============================================
+    // 薬の更新
+    // ============================================
+    function updateMedicine() {
+      if (!medicineItem || medicineItem.collected) return;
+      
+      medicineItem.time += 0.02;
+      
+      // 浮遊アニメーション
+      medicineItem.group.position.y = Math.sin(medicineItem.time * 2) * 0.15;
+      
+      // 回転
+      medicineItem.group.rotation.y += 0.02;
+      
+      // リングの回転
+      if (medicineItem.ring) {
+        medicineItem.ring.rotation.z += 0.03;
+      }
+      
+      // プレイヤーが近づいたら集める
+      const dist = playerPosition.distanceTo(medicineItem.position);
+      if (dist < 1.6) {
+        collectMedicine();
+      }
+    }
+    
+    // ============================================
+    // 病巣の更新
+    // ============================================
+    function updateDiseaseFocus() {
+      if (!diseaseFocus) return;
+      
+      diseaseFocus.time += 0.02;
+      
+      const pulse = 1 + Math.sin(diseaseFocus.time * 2) * 0.05;
+      diseaseFocus.group.scale.set(pulse, pulse, pulse);
+      
+      if (diseaseFocus.light) {
+        diseaseFocus.light.intensity = 1.5 + Math.sin(diseaseFocus.time * 3) * 0.8;
+      }
+      if (diseaseFocus.spotLight) {
+        diseaseFocus.spotLight.intensity = 0.3 + Math.sin(diseaseFocus.time * 2.5) * 0.2;
+      }
+      if (diseaseFocus.aura) {
+        diseaseFocus.aura.material.opacity = 0.1 + Math.sin(diseaseFocus.time * 1.5) * 0.08;
+        diseaseFocus.aura.scale.setScalar(1 + Math.sin(diseaseFocus.time * 2) * 0.02);
+      }
+      if (diseaseFocus.beam) {
+        diseaseFocus.beam.material.opacity = 0.28 + Math.sin(diseaseFocus.time * 3) * 0.12;
+      }
+      if (diseaseFocus.floorRing) {
+        const rs = 1 + Math.sin(diseaseFocus.time * 3) * 0.25;
+        diseaseFocus.floorRing.scale.set(rs, rs, 1);
+        diseaseFocus.floorRing.rotation.z += 0.01;
+        diseaseFocus.floorRing.material.opacity = 0.5 + Math.sin(diseaseFocus.time * 3) * 0.3;
+      }
+      if (diseaseFocus.floorRingOuter) {
+        const rs = 1 + Math.sin(diseaseFocus.time * 2) * 0.15;
+        diseaseFocus.floorRingOuter.scale.set(rs, rs, 1);
+        diseaseFocus.floorRingOuter.material.opacity = 0.25 + Math.sin(diseaseFocus.time * 2) * 0.15;
+      }
+      if (diseaseFocus.arrow) {
+        diseaseFocus.arrow.rotation.y += 0.02;
+      }
+      
+      if (hasMedicine && !isPlayerDead) {
+        const dist = playerPosition.distanceTo(diseaseFocus.position);
+        if (dist < diseaseFocus.depositRadius) {
+          showVictory();
+        }
+      }
+    }
+    
+    // ============================================
+    // 薬の収集
+    // ============================================
+    function collectMedicine() {
+      if (!medicineItem || medicineItem.collected) return;
+      
+      medicineItem.collected = true;
+      hasMedicine = true;
+      
+      // 薬を消す
+      scene.remove(medicineItem.group);
+      
+      // UI更新
+      document.getElementById('medicine-indicator').classList.add('active');
+      document.getElementById('obj-medicine').className = 'objective-item completed';
+      document.getElementById('obj-medicine').textContent = '1. 薬を拾う ✓';
+      document.getElementById('obj-deposit').className = 'objective-item pending';
+      
+      // 通知
+      showNotification('薬を入手しました！病巣に投下してください', 'notice-pickup');
+      playPickupSound();
+      
+      updateStatus('薬を入手！病巣（赤い光）に向かってください');
+      
+      console.log('✓ プレイヤーが薬を拾いました');
+    }
+    
+    // ============================================
+    // 勝利処理
+    // ============================================
+    function showVictory() {
+      if (isPlayerDead) return;
+      isPlayerDead = true;
+      
+      document.getElementById('victory-message').classList.add('active');
+      document.getElementById('victory-restart').classList.add('active');
+      document.getElementById('victory-qr').classList.add('active');
+      document.getElementById('obj-deposit').className = 'objective-item completed';
+      document.getElementById('obj-deposit').textContent = '2. 病巣に薬を投下 ✓';
+      
+      // クリア統計の表示
+      if (VICTORY_SCREEN_CONFIG.enabled) {
+        const elapsed = (performance.now() - victoryStats.startTime) / 1000;
+        document.getElementById('victory-time').textContent = formatTime(elapsed);
+        document.getElementById('victory-dodges').textContent = String(victoryStats.dodges);
+        generateVictoryQR();
+      }
+      
+      updateStatus('ミッション成功！');
+      playVictorySound();
+      
+      // 成功演出：背景を明るくしてはっきり分かるようにする
+      brightenForVictory();
+      
+      // オペレータ（カメラ）の方を向いてガッツポーズ
+      const cdx = camera.position.x - playerPosition.x;
+      const cdz = camera.position.z - playerPosition.z;
+      playerRotation = Math.atan2(-cdx, -cdz);
+      if (playerAvatar) {
+        if (playerAvatar.isProcedural) {
+          playerAvatar.changeFBX('celebrate');
+        } else {
+          playerAvatar.changeFBX('fbx/Idle.fbx').catch(() => {});
+        }
+      }
+      
+      // 投下エフェクト
+      createDepositEffect();
+      
+      // 治療成功：病巣を消して治ったことを表現
+      if (diseaseFocus && diseaseFocus.group) {
+        scene.remove(diseaseFocus.group);
+      }
+      
+      // バックサウンド停止
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+      }
+      
+      console.log('✓ ミッション成功！薬を病巣に投下しました');
+      
+      // デモモード中はクリア画面を少し見せてから次のデモを開始
+      if (demoMode && DEMO_CONFIG.enabled) {
+        if (demoVictoryRestartId) clearTimeout(demoVictoryRestartId);
+        demoVictoryRestartId = setTimeout(() => {
+          if (demoMode) restartGame();
+        }, DEMO_CONFIG.victoryPauseSeconds * 1000);
+      }
+      
+      setTimeout(() => {
+        showNotification('ゲームクリア！おめでとうございます！', 'notice-pickup');
+      }, 2000);
+    }
+    
+    // ============================================
+    // 成功時の背景・照明を明るくする
+    // ============================================
+    function brightenForVictory() {
+      if (!scene) return;
+      scene.background = new THREE.Color(0xffd9b3);
+      if (scene.fog) scene.fog.color.set(0xffd9b3);
+      if (ambientLight) ambientLight.intensity = 2.2;
+      if (victoryLight) scene.remove(victoryLight);
+      victoryLight = new THREE.PointLight(0xffe0b0, 3.0, 40);
+      victoryLight.position.set(playerPosition.x, 4, playerPosition.z);
+      scene.add(victoryLight);
+    }
+    
+    // ============================================
+    // マスト細胞の爆発エフェクト
+    // ============================================
+    function createMastExplosion(position) {
+      const particleCount = 100;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(particleCount * 3);
+      const vel = new Float32Array(particleCount * 3);
+      const col = new Float32Array(particleCount * 3);
+      
+      const center = position.clone();
+      center.y += 0.6;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const e = Math.random() * Math.PI;
+        const sp = 0.4 + Math.random() * 0.5;
+        vel[i * 3] = Math.sin(e) * Math.cos(a) * sp;
+        vel[i * 3 + 1] = Math.sin(e) * Math.sin(a) * sp;
+        vel[i * 3 + 2] = Math.cos(e) * sp;
+        pos[i * 3] = center.x;
+        pos[i * 3 + 1] = center.y;
+        pos[i * 3 + 2] = center.z;
+        col[i * 3] = 1.0;
+        col[i * 3 + 1] = 0.3 + Math.random() * 0.3;
+        col[i * 3 + 2] = 0.1;
+      }
+      
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      
+      const mat = new THREE.PointsMaterial({
+        size: 0.18,
+        transparent: true,
+        opacity: 1,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const ps = new THREE.Points(geo, mat);
+      scene.add(ps);
+      
+      let frame = 0;
+      const anim = () => {
+        frame++;
+        const p = ps.geometry.attributes.position.array;
+        for (let i = 0; i < particleCount; i++) {
+          p[i * 3] += vel[i * 3];
+          p[i * 3 + 1] += vel[i * 3 + 1];
+          p[i * 3 + 2] += vel[i * 3 + 2];
+          vel[i * 3 + 1] -= 0.03;
+        }
+        ps.geometry.attributes.position.needsUpdate = true;
+        mat.opacity = Math.max(0, 1 - frame / 90);
+        if (frame < 90) {
+          requestAnimationFrame(anim);
+        } else {
+          scene.remove(ps);
+          ps.geometry.dispose();
+          mat.dispose();
+        }
+      };
+      anim();
+    }
+    
+    // ============================================
+    // 投下エフェクト
+    // ============================================
+    function createDepositEffect() {
+      const particleCount = 200;
+      const particles = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const velocities = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      
+      const center = diseaseFocus.position.clone();
+      center.y += 1.5;
+      
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = center.x + (Math.random() - 0.5) * 2;
+        positions[i * 3 + 1] = center.y + (Math.random() - 0.5) * 2;
+        positions[i * 3 + 2] = center.z + (Math.random() - 0.5) * 2;
+        
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.15 + Math.random() * 0.25;
+        velocities[i * 3] = Math.cos(angle) * speed;
+        velocities[i * 3 + 1] = Math.random() * 0.15 + 0.1;
+        velocities[i * 3 + 2] = Math.sin(angle) * speed;
+        
+        colors[i * 3] = 0.2 + Math.random() * 0.3;
+        colors[i * 3 + 1] = 0.7 + Math.random() * 0.3;
+        colors[i * 3 + 2] = 0.3 + Math.random() * 0.3;
+      }
+      
+      particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      
+      const particleMat = new THREE.PointsMaterial({
+        size: 0.15,
+        transparent: true,
+        opacity: 1,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const particleSystem = new THREE.Points(particles, particleMat);
+      scene.add(particleSystem);
+      
+      let frame = 0;
+      const animateParticles = () => {
+        frame++;
+        const pos = particleSystem.geometry.attributes.position.array;
+        
+        for (let i = 0; i < particleCount; i++) {
+          pos[i * 3] += velocities[i * 3];
+          pos[i * 3 + 1] += velocities[i * 3 + 1];
+          pos[i * 3 + 2] += velocities[i * 3 + 2];
+          velocities[i * 3 + 1] -= 0.015;
+        }
+        
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+        particleMat.opacity = Math.max(0, 1 - frame / 150);
+        
+        if (frame < 150) {
+          requestAnimationFrame(animateParticles);
+        } else {
+          scene.remove(particleSystem);
+          particleSystem.geometry.dispose();
+          particleMat.dispose();
+        }
+      };
+      
+      animateParticles();
+    }
+    
+    // ============================================
+    // プレイヤー死亡処理
+    // ============================================
+    function killPlayer() {
+      if (isPlayerDead) return;
+      isPlayerDead = true;
+      
+      document.getElementById('death-message').classList.add('active');
+      
+      if (playerAvatar && playerAvatar.changeFBX) {
+        playerAvatar.changeFBX('fbx/Shrugging.fbx').catch(() => {});
+      }
+      
+      updateStatus('免疫細胞に捕捉されました...');
+      playDeathSound();
+      
+      resetTimeoutId = setTimeout(async () => {
+        await resetGame();
+      }, 3000);
+    }
+    
+    // ============================================
+    // 通知表示
+    // ============================================
+    function showNotification(text, className = '') {
+      const notification = document.getElementById('notification');
+      const h2 = notification.querySelector('h2');
+      h2.textContent = text;
+      notification.className = 'active ' + className;
+      
+      setTimeout(() => {
+        notification.classList.remove('active');
+      }, 3000);
+    }
+    
+    // ============================================
+    // ミニマップ更新
+    // ============================================
+    function updateMinimap() {
+      const canvas = document.getElementById('minimap-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const w = 140, h = 140;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      ctx.fillStyle = 'rgba(30, 10, 10, 0.85)';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, w / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      const scale = 3.5;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      function worldToMap(wx, wz) {
+        const dx = (wx - playerPosition.x) * scale;
+        const dz = (wz - playerPosition.z) * scale;
+        if (Math.abs(dx) > w/2 - 4 || Math.abs(dz) > h/2 - 4) return null;
+        return { x: cx + dx, y: cy + dz };
+      }
+      
+      // 範囲外の目標をミニマップの端に表示（向き矢印つき）するための変換
+      function edgeMarker(wx, wz) {
+        const dx = (wx - playerPosition.x) * scale;
+        const dz = (wz - playerPosition.z) * scale;
+        const radius = w / 2 - 6;
+        const len = Math.hypot(dx, dz);
+        if (len <= radius) {
+          return { x: cx + dx, y: cy + dz, onEdge: false, angle: 0 };
+        }
+        return { x: cx + (dx / len) * radius, y: cy + (dz / len) * radius, onEdge: true, angle: Math.atan2(dz, dx) };
+      }
+      
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // 病巣 (L) — 常に表示（遠くても端に矢印）
+      if (diseaseFocus) {
+        const m = edgeMarker(diseaseFocus.position.x, diseaseFocus.position.z);
+        const pulse = 12 + Math.sin(Date.now() * 0.005) * 3;
+        ctx.fillStyle = 'rgba(255, 60, 30, 0.35)';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ff6644';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        if (m.onEdge) {
+          ctx.save();
+          ctx.translate(m.x, m.y);
+          ctx.rotate(m.angle);
+          ctx.fillStyle = '#ff2200';
+          ctx.beginPath();
+          ctx.moveTo(11, 0);
+          ctx.lineTo(3, -5);
+          ctx.lineTo(3, 5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('L', m.x, m.y);
+      }
+      
+      // 敵
+      enemies.forEach(enemy => {
+        const p = worldToMap(enemy.position.x, enemy.position.z);
+        if (!p) return;
+        const near = playerPosition.distanceTo(enemy.position) < 8;
+        let col, r, lbl;
+        if (enemy.type === 'macrophage') { col = '#44ff44'; r = 6; lbl = 'M'; }
+        else if (enemy.type === 'neutrophil') { col = '#ff99bb'; r = 3.5; lbl = 'N'; }
+        else if (enemy.type === 'mast') { col = '#ff8844'; r = 5; lbl = 'T'; }
+        else { col = '#88ccff'; r = 4; lbl = 'W'; }
+        ctx.fillStyle = near ? '#ff4444' : col;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 7px sans-serif';
+        ctx.fillText(lbl, p.x, p.y);
+      });
+      
+      // 薬 — 常に表示（遠くても端に矢印）
+      if (medicineItem && !medicineItem.collected) {
+        const m = edgeMarker(medicineItem.position.x, medicineItem.position.z);
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        if (m.onEdge) {
+          ctx.save();
+          ctx.translate(m.x, m.y);
+          ctx.rotate(m.angle);
+          ctx.fillStyle = '#00ff88';
+          ctx.beginPath();
+          ctx.moveTo(9, 0);
+          ctx.lineTo(2, -4);
+          ctx.lineTo(2, 4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 7px sans-serif';
+        ctx.fillText('💊', m.x, m.y + 1);
+      }
+      
+      // プレイヤー (P) — 向きが分かる矢印付き
+      const facingAngle = Math.atan2(-Math.cos(playerRotation), -Math.sin(playerRotation));
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(facingAngle);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-4, -5);
+      ctx.lineTo(-4, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 6px sans-serif';
+      ctx.fillText('P', cx, cy);
+    }
+    
+    // ============================================
+    // 進行度バーの更新
+    // ============================================
+    function updateProgressBar() {
+      if (!diseaseFocus) return;
+      
+      const startZ = 12;
+      const endZ = diseaseFocus.position.z;
+      const currentZ = playerPosition.z;
+      
+      const totalDist = Math.abs(startZ - endZ);
+      const traveled = Math.abs(startZ - Math.max(currentZ, endZ));
+      const progress = Math.min(100, Math.max(0, (traveled / totalDist) * 100));
+      
+      document.getElementById('progress-bar-fill').style.width = progress + '%';
+    }
+    
+    // ============================================
+    // 病巣方向のHUD矢印（薬所持中に表示）
+    // ============================================
+    function updateLesionArrow() {
+      const el = document.getElementById('lesion-arrow');
+      if (!el) return;
+      
+      if (!hasMedicine || isPlayerDead || !diseaseFocus) {
+        el.classList.remove('active');
+        return;
+      }
+      
+      el.classList.add('active');
+      
+      const dx = diseaseFocus.position.x - playerPosition.x;
+      const dz = diseaseFocus.position.z - playerPosition.z;
+      const targetAngle = Math.atan2(dx, dz);
+      const diff = ((targetAngle - playerRotation + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      const deg = diff * 180 / Math.PI;
+      
+      // 回転はCSS変数で持ち、CSSアニメーションと共存させる
+      el.style.setProperty('--arrow-rot', deg + 'deg');
+    }
+    
+    // ============================================
+    // WASD操作 + ゲームパッド
+    // ============================================
+    let keyboardControlsInitialized = false;
+    let gamepadIndex = null;
+    let gamepadAxes = { leftX: 0, leftY: 0 };
+    
+    function initKeyboardControls() {
+      if (keyboardControlsInitialized) return;
+      
+      window.addEventListener('keydown', (e) => {
+        keys[e.code] = true;
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space'].includes(e.code)) {
+          e.preventDefault();
+        }
+        if (e.code === 'Escape') {
+          togglePause();
+        }
+      });
+      
+      window.addEventListener('keyup', (e) => {
+        keys[e.code] = false;
+      });
+      
+      window.addEventListener('gamepadconnected', (e) => {
+        gamepadIndex = e.gamepad.index;
+      });
+      
+      window.addEventListener('gamepaddisconnected', (e) => {
+        if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
+      });
+      
+      keyboardControlsInitialized = true;
+    }
+    
+    function updateGamepadInput() {
+      if (gamepadIndex === null) {
+        const gamepads = navigator.getGamepads();
+        for (let i = 0; i < gamepads.length; i++) {
+          if (gamepads[i]) {
+            gamepadIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (gamepadIndex === null) return;
+      
+      const gamepad = navigator.getGamepads()[gamepadIndex];
+      if (!gamepad) {
+        gamepadIndex = null;
+        return;
+      }
+      
+      const deadZone = 0.15;
+      let leftX = Math.abs(gamepad.axes[0]) > deadZone ? gamepad.axes[0] : 0;
+      let leftY = Math.abs(gamepad.axes[1]) > deadZone ? gamepad.axes[1] : 0;
+      
+      if (gamepad.buttons[15]?.pressed) leftX = -1;
+      if (gamepad.buttons[17]?.pressed) leftX = 1;
+      if (gamepad.buttons[18]?.pressed) leftY = -1;
+      if (gamepad.buttons[16]?.pressed) leftY = 1;
+      
+      gamepadAxes.leftX = leftX;
+      gamepadAxes.leftY = leftY;
+    }
+    
+    // ============================================
+    // プレイヤー移動更新
+    // ============================================
+    function updatePlayerMovement() {
+      if (!playerAvatar || isPlayerDead) return;
+      if (gameState !== 'playing') return;
+      
+      updateGamepadInput();
+      
+      let moved = false;
+      let inputX = 0;
+      let inputZ = 0;
+      
+      // デモモード中はAIの入力を使用
+      if (demoMode) {
+        inputX = aiInput.x;
+        inputZ = aiInput.z;
+      } else {
+        if (keys['KeyW'] || keys['ArrowUp']) inputZ -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) inputZ += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+        
+        inputX += gamepadAxes.leftX;
+        inputZ += gamepadAxes.leftY;
+      }
+      
+      const inputMagnitude = Math.sqrt(inputX * inputX + inputZ * inputZ);
+      if (inputMagnitude > 0) {
+        inputX /= inputMagnitude;
+        inputZ /= inputMagnitude;
+        
+        // Shiftでダッシュ（デモ中は自動でダッシュ）
+        const sprintMult = (DEMO_CONFIG.sprint && demoMode) || keys['ShiftLeft'] || keys['ShiftRight'] ? 1.7 : 1;
+        
+        let newX = playerPosition.x + inputX * moveSpeed * sprintMult * deltaTime;
+        let newZ = playerPosition.z + inputZ * moveSpeed * sprintMult * deltaTime;
+        newX = Math.max(WORLD_BOUNDS.xMin, Math.min(WORLD_BOUNDS.xMax, newX));
+        newZ = Math.max(WORLD_BOUNDS.zMin, Math.min(WORLD_BOUNDS.zMax, newZ));
+        let canMove = true;
+        
+        for (const trash of trashObjects) {
+          const trashWorldPos = new THREE.Vector3();
+          trash.getWorldPosition(trashWorldPos);
+          const distance = Math.sqrt(
+            Math.pow(newX - trashWorldPos.x, 2) + 
+            Math.pow(newZ - trashWorldPos.z, 2)
+          );
+          if (distance < 0.7) {
+            canMove = false;
+            break;
+          }
+        }
+        
+        if (canMove) {
+          playerPosition.x = newX;
+          playerPosition.z = newZ;
+          moved = true;
+        }
+      }
+      
+      if (moved && inputMagnitude > 0) {
+        playerRotation = Math.atan2(inputX, inputZ) + Math.PI;
+      }
+      
+      if (moved && currentAnimation !== 'run') {
+        currentAnimation = 'run';
+        if (playerAvatar.changeFBX) {
+          playerAvatar.changeFBX('fbx/Fast Run.fbx').then(() => {
+            if (playerAvatar.character.action && playerAvatar.character.currentMixer) {
+              const clip = playerAvatar.character.action.getClip();
+              if (clip && clip.tracks) {
+                const filteredTracks = clip.tracks.filter(track => {
+                  return !track.name.toLowerCase().includes('position');
+                });
+                const newClip = new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
+                playerAvatar.character.action.stop();
+                playerAvatar.character.currentMixer.uncacheClip(clip);
+                const newAction = playerAvatar.character.currentMixer.clipAction(newClip);
+                newAction.play();
+                playerAvatar.character.action = newAction;
+              }
+            }
+          }).catch(() => {});
+        }
+      } else if (!moved && currentAnimation !== 'idle') {
+        currentAnimation = 'idle';
+        if (playerAvatar.changeFBX) {
+          playerAvatar.changeFBX('fbx/Idle.fbx').catch(() => {});
+        }
+      }
+      
+      if (playerAvatar && playerAvatar.character && playerAvatar.character.currentVrm) {
+        const vrmScene = playerAvatar.character.currentVrm.scene;
+        vrmScene.position.set(playerPosition.x, playerPosition.y, playerPosition.z);
+        vrmScene.rotation.y = playerRotation;
+      }
+    }
+    
+    // ============================================
+    // GVRMアバター読み込み
+    // ============================================
+    async function loadAvatars() {
+      try {
+        updateStatus('アバター読み込み中...');
+        
+        if (!selectedPlayerAvatar) {
+          throw new Error('アバターが選択されていません');
+        }
+        
+        // Webカメラの顔写真から「顔＋自動生成ボディ」のアバターを作成
+        if (selectedPlayerAvatar === 'custom') {
+          if (!capturedFaceImage) throw new Error('撮影画像がありません');
+          updateStatus('顔写真からアバターを作成中...');
+          playerAvatar = createProceduralAvatar(capturedFaceImage);
+          scene.add(playerAvatar.character.currentVrm.scene);
+          playerAvatar.character.currentVrm.scene.position.set(0, 0, 12);
+          await playerAvatar.changeFBX('fbx/Idle.fbx');
+          updateStatus('アバター読み込み完了');
+          document.getElementById('avatar-status').textContent = 'アバター: Webカメラで作成';
+          return true;
+        }
+        
+        // ピノキオ風アバター（コード生成）
+        if (selectedPlayerAvatar === 'pinocchio') {
+          updateStatus('ピノキオを呼び出し中...');
+          playerAvatar = createPinocchioAvatar();
+          scene.add(playerAvatar.character.currentVrm.scene);
+          playerAvatar.character.currentVrm.scene.position.set(0, 0, 12);
+          await playerAvatar.changeFBX('fbx/Idle.fbx');
+          updateStatus('アバター読み込み完了');
+          document.getElementById('avatar-status').textContent = 'アバター: ピノキオ';
+          return true;
+        }
+        
+        const playerGvrmPath = `gvrm/${selectedPlayerAvatar}.gvrm`;
+        playerAvatar = await GVRM.load(playerGvrmPath, scene, camera, renderer, `${selectedPlayerAvatar}.gvrm`);
+        playerAvatar.character.currentVrm.scene.position.set(0, 0, 12);
+        playerAvatar.character.currentVrm.scene.scale.set(1.5, 1.5, 1.5);
+        await playerAvatar.changeFBX('fbx/Idle.fbx');
+        
+        updateStatus('アバター読み込み完了');
+        document.getElementById('avatar-status').textContent = `アバター: ${selectedPlayerAvatar}`;
+        
+        return true;
+      } catch (error) {
+        console.error('アバター読み込みエラー:', error);
+        updateStatus('アバター読み込みエラー');
+        return false;
+      }
+    }
+    
+    // ============================================
+    // Webカメラの顔写真 + 自動生成ボディのアバター
+    // GVRMラッパーと同じインターフェースを備え、
+    // 既存のゲームロジック（update / changeFBX / currentVrm.scene）をそのまま使える
+    // ============================================
+    function createProceduralAvatar(faceImageUrl) {
+      const bodyGroup = new THREE.Group();
+      const animGroup = new THREE.Group();
+      bodyGroup.add(animGroup);
+      // ゲームの進行方向（-z）と見た目の正面（+z）を合わせるため180度回転
+      animGroup.rotation.y = Math.PI;
+      
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xe8b89a, roughness: 0.7 });
+      const clothMat = new THREE.MeshStandardMaterial({ color: 0x3a6ea5, roughness: 0.85 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x33334a, roughness: 0.8 });
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.8 });
+      
+      // 頭（顔写真を貼る土台）
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 20), skinMat);
+      head.position.set(0, 1.66, 0);
+      animGroup.add(head);
+      
+      // 顔写真（常にカメラの方を向くビルボード）
+      const faceTex = new THREE.TextureLoader().load(faceImageUrl);
+      faceTex.colorSpace = THREE.SRGBColorSpace;
+      const faceMat = new THREE.MeshBasicMaterial({
+        map: faceTex,
+        transparent: true,
+        depthWrite: false
+      });
+      const facePlane = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.54), faceMat);
+      facePlane.position.set(0, 1.66, 0.03);
+      animGroup.add(facePlane);
+      
+      // 首
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.16, 10), skinMat);
+      neck.position.y = 1.44;
+      animGroup.add(neck);
+      
+      // 胴体（白衣風）
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.5, 8, 14), clothMat);
+      torso.position.y = 1.05;
+      animGroup.add(torso);
+      
+      // 腰
+      const hip = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.18, 8, 12), clothMat);
+      hip.position.y = 0.62;
+      animGroup.add(hip);
+      
+      // 腕・脚（ピボット付きでアニメーション可能にする）
+      const makeLimb = (mat, radius, length) => {
+        const pivot = new THREE.Group();
+        const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 6, 10), mat);
+        mesh.position.y = -length / 2 - 0.02;
+        pivot.add(mesh);
+        return pivot;
+      };
+      
+      const leftArm = makeLimb(clothMat, 0.09, 0.42);
+      leftArm.position.set(-0.44, 1.3, 0);
+      animGroup.add(leftArm);
+      
+      const rightArm = makeLimb(clothMat, 0.09, 0.42);
+      rightArm.position.set(0.44, 1.3, 0);
+      animGroup.add(rightArm);
+      
+      // 手
+      const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), skinMat);
+      lHand.position.set(-0.44, 0.82, 0);
+      animGroup.add(lHand);
+      
+      const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), skinMat);
+      rHand.position.set(0.44, 0.82, 0);
+      animGroup.add(rHand);
+      
+      // 脚
+      const leftLeg = makeLimb(darkMat, 0.13, 0.42);
+      leftLeg.position.set(-0.17, 0.55, 0);
+      animGroup.add(leftLeg);
+      
+      const rightLeg = makeLimb(darkMat, 0.13, 0.42);
+      rightLeg.position.set(0.17, 0.55, 0);
+      animGroup.add(rightLeg);
+      
+      // 靴
+      [[-0.17], [0.17]].forEach(x => {
+        const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), shoeMat);
+        shoe.scale.set(1.1, 0.5, 1.6);
+        shoe.position.set(x[0], 0.06, 0.05);
+        animGroup.add(shoe);
+      });
+      
+      bodyGroup.scale.setScalar(1.5);
+      
+      return {
+        isProcedural: true,
+        character: {
+          currentVrm: { scene: bodyGroup },
+          action: null,
+          currentMixer: null
+        },
+        update() {
+          const anim = currentAnimation;
+          
+          if (anim === 'celebrate') {
+            // ガッツポーズ：両腕を上げて交互に振り、ジャンプする
+            const t = performance.now() * 0.01;
+            leftArm.rotation.x = -2.7 + Math.sin(t) * 0.2;
+            rightArm.rotation.x = -2.7 + Math.sin(t + Math.PI) * 0.2;
+            leftLeg.rotation.x = Math.sin(t) * 0.2;
+            rightLeg.rotation.x = Math.sin(t + Math.PI) * 0.2;
+            animGroup.position.y = Math.abs(Math.sin(t * 2)) * 0.08;
+          } else if (anim === 'run') {
+            const t = performance.now() * 0.013;
+            leftArm.rotation.x = Math.sin(t) * 1.0;
+            rightArm.rotation.x = Math.sin(t + Math.PI) * 1.0;
+            leftLeg.rotation.x = Math.sin(t + Math.PI) * 0.9;
+            rightLeg.rotation.x = Math.sin(t) * 0.9;
+            animGroup.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+          } else {
+            leftArm.rotation.x = 0;
+            rightArm.rotation.x = 0;
+            leftLeg.rotation.x = 0;
+            rightLeg.rotation.x = 0;
+            animGroup.position.y = 0;
+          }
+          
+          // 顔写真を常にカメラの方向へ向ける（ビルボード）
+          const dx = camera.position.x - playerPosition.x;
+          const dz = camera.position.z - playerPosition.z;
+          facePlane.rotation.y = Math.atan2(dx, dz) - bodyGroup.rotation.y - Math.PI;
+          
+          // 死亡（Shrugging）時はゆっくり倒れる
+          if (anim === 'shrug') {
+            bodyGroup.rotation.z = Math.min(1.3, bodyGroup.rotation.z + 0.02);
+          }
+        },
+        changeFBX(path) {
+          const p = String(path || '').toLowerCase();
+          if (p.includes('run')) currentAnimation = 'run';
+          else if (p.includes('celebrate')) currentAnimation = 'celebrate';
+          else if (p.includes('shrugging')) currentAnimation = 'shrug';
+          else currentAnimation = 'idle';
+          return Promise.resolve();
+        }
+      };
+    }
+    
+    // ============================================
+    // ピノキオ風アバター（コード生成・実在人物なし）
+    // 木肌・長い鼻・とんがり帽子の操り人形。
+    // GVRMラッパーと同じインターフェースを持つ
+    // ============================================
+    function createPinocchioAvatar() {
+      const bodyGroup = new THREE.Group();
+      const animGroup = new THREE.Group();
+      bodyGroup.add(animGroup);
+      // ゲームの進行方向（-z）と見た目の正面（+z）を合わせるため180度回転
+      animGroup.rotation.y = Math.PI;
+      
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0xc89a6e, roughness: 0.85 });
+      const woodDark = new THREE.MeshStandardMaterial({ color: 0x8a6a48, roughness: 0.9 });
+      const jointMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.9 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf0c040, roughness: 0.8 });
+      const shortsMat = new THREE.MeshStandardMaterial({ color: 0x3a6ad8, roughness: 0.7 });
+      const hatMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.8 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0xd84444, roughness: 0.6 });
+      
+      // 頭（木肌）
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.235, 20, 20), woodMat);
+      head.position.y = 1.66;
+      animGroup.add(head);
+      
+      // 長い鼻（ピノキオの特徴）
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 10), woodDark);
+      nose.rotation.x = -Math.PI / 2;
+      nose.position.set(0, 1.66, 0.22);
+      animGroup.add(nose);
+      
+      // 目（木のボタン風）
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 });
+      [[-0.095, 1.71, 0.215], [0.095, 1.71, 0.215]].forEach(p => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), eyeMat);
+        eye.position.set(p[0], p[1], p[2]);
+        animGroup.add(eye);
+      });
+      
+      // 耳（木の取っ手風）
+      [[-0.23], [0.23]].forEach(x => {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), woodDark);
+        ear.position.set(x[0], 1.67, 0);
+        animGroup.add(ear);
+      });
+      
+      // 髪（頭頂）
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.238, 16, 12), woodDark);
+      hair.scale.set(1.03, 0.7, 1.03);
+      hair.position.y = 1.77;
+      animGroup.add(hair);
+      
+      // とんがり帽子
+      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 10), hatMat);
+      hat.position.y = 1.88;
+      animGroup.add(hat);
+      
+      // 首
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.085, 0.14, 10), woodDark);
+      neck.position.y = 1.44;
+      animGroup.add(neck);
+      
+      // 赤いネッカチーフ風襟
+      const neckerchief = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.15, 6), accentMat);
+      neckerchief.rotation.x = Math.PI;
+      neckerchief.position.y = 1.4;
+      animGroup.add(neckerchief);
+      
+      // 胴体（黄色いシャツ）— 細身
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.55, 8, 14), shirtMat);
+      torso.position.y = 1.08;
+      animGroup.add(torso);
+      
+      // 腰（青いズボン）
+      const hip = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.18, 8, 12), shortsMat);
+      hip.position.y = 0.62;
+      animGroup.add(hip);
+      
+      // 腕・脚（木の球関節つきのセグメント）— 細く長め
+      const makeLimb = (mat, radius, length) => {
+        const pivot = new THREE.Group();
+        const upper = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 6, 10), mat);
+        upper.position.y = -length / 2 - 0.02;
+        pivot.add(upper);
+        const joint = new THREE.Mesh(new THREE.SphereGeometry(radius + 0.02, 8, 8), jointMat);
+        joint.position.y = -length - 0.05;
+        pivot.add(joint);
+        return pivot;
+      };
+      
+      const leftArm = makeLimb(shirtMat, 0.05, 0.5);
+      leftArm.position.set(-0.34, 1.3, 0);
+      animGroup.add(leftArm);
+      
+      const rightArm = makeLimb(shirtMat, 0.05, 0.5);
+      rightArm.position.set(0.34, 1.3, 0);
+      animGroup.add(rightArm);
+      
+      // 手（木の手）
+      const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), woodMat);
+      lHand.position.set(-0.34, 0.76, 0);
+      animGroup.add(lHand);
+      const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), woodMat);
+      rHand.position.set(0.34, 0.76, 0);
+      animGroup.add(rHand);
+      
+      // 脚（木肌）
+      const leftLeg = makeLimb(woodMat, 0.06, 0.5);
+      leftLeg.position.set(-0.12, 0.55, 0);
+      animGroup.add(leftLeg);
+      
+      const rightLeg = makeLimb(woodMat, 0.06, 0.5);
+      rightLeg.position.set(0.12, 0.55, 0);
+      animGroup.add(rightLeg);
+      
+      // 木靴
+      [[-0.12], [0.12]].forEach(x => {
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.24), woodDark);
+        shoe.position.set(x[0], 0.05, 0.05);
+        animGroup.add(shoe);
+      });
+      
+      // ピノキオは他のアバターより小さめ（約半分）
+      bodyGroup.scale.setScalar(0.75);
+      
+      return {
+        isProcedural: true,
+        character: {
+          currentVrm: { scene: bodyGroup },
+          action: null,
+          currentMixer: null
+        },
+        update() {
+          const anim = currentAnimation;
+          if (anim === 'celebrate') {
+            // ガッツポーズ：両腕を上げて交互に振り、ジャンプする
+            const t = performance.now() * 0.01;
+            leftArm.rotation.x = -2.7 + Math.sin(t) * 0.2;
+            rightArm.rotation.x = -2.7 + Math.sin(t + Math.PI) * 0.2;
+            leftLeg.rotation.x = Math.sin(t) * 0.2;
+            rightLeg.rotation.x = Math.sin(t + Math.PI) * 0.2;
+            animGroup.position.y = Math.abs(Math.sin(t * 2)) * 0.08;
+          } else if (anim === 'run') {
+            const t = performance.now() * 0.013;
+            leftArm.rotation.x = Math.sin(t) * 1.0;
+            rightArm.rotation.x = Math.sin(t + Math.PI) * 1.0;
+            leftLeg.rotation.x = Math.sin(t + Math.PI) * 0.9;
+            rightLeg.rotation.x = Math.sin(t) * 0.9;
+            animGroup.position.y = Math.abs(Math.sin(t * 2)) * 0.05;
+          } else {
+            leftArm.rotation.x = 0;
+            rightArm.rotation.x = 0;
+            leftLeg.rotation.x = 0;
+            rightLeg.rotation.x = 0;
+            animGroup.position.y = 0;
+          }
+          
+          // 死亡（Shrugging）時はゆっくり倒れる
+          if (anim === 'shrug') {
+            bodyGroup.rotation.z = Math.min(1.3, bodyGroup.rotation.z + 0.02);
+          }
+        },
+        changeFBX(path) {
+          const p = String(path || '').toLowerCase();
+          if (p.includes('run')) currentAnimation = 'run';
+          else if (p.includes('celebrate')) currentAnimation = 'celebrate';
+          else if (p.includes('shrugging')) currentAnimation = 'shrug';
+          else currentAnimation = 'idle';
+          return Promise.resolve();
+        }
+      };
+    }
+    
+    // ============================================
+    // 体内パーティクル更新
+    // ============================================
+    function updateBodyParticles() {
+      const t = Date.now() * 0.0005;
+      bodyParticles.forEach(particles => {
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i] += Math.sin(t + i * 0.01) * 0.002;
+          positions[i + 1] += Math.sin(t * 0.7 + i * 0.015) * 0.003;
+          positions[i + 2] += Math.cos(t * 0.5 + i * 0.01) * 0.002;
+          if (positions[i + 1] > 6.5) positions[i + 1] = 0.5;
+          if (positions[i + 1] < 0.5) positions[i + 1] = 6.5;
+          if (positions[i] > 25) positions[i] = -25;
+          if (positions[i] < -25) positions[i] = 25;
+          if (positions[i + 2] > 20) positions[i + 2] = -30;
+          if (positions[i + 2] < -30) positions[i + 2] = 20;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+      });
+      
+      // 赤血球の浮遊
+      redBloodCells.forEach(rbc => {
+        const u = rbc.userData;
+        rbc.position.x = u.baseX + Math.sin(t * u.speed + u.phase) * 0.6;
+        rbc.position.y = u.baseY + Math.sin(t * 0.8 + u.phase * 1.7) * 0.4;
+        rbc.position.z = u.baseZ + Math.cos(t * u.speed * 0.7 + u.phase) * 0.6;
+        rbc.rotation.x += 0.003;
+        rbc.rotation.y += 0.002;
+      });
+    }
+    
+    // ============================================
+    // ステータス更新
+    // ============================================
+    function updateStatus(text) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) {
+        statusEl.textContent = text;
+      }
+    }
+    
+    // ============================================
+    // 効果音（WebAudio）
+    // ============================================
+    let audioCtx = null;
+    
+    function getAudioCtx() {
+      if (!audioCtx) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+          return null;
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+    
+    function playTone(freq, duration, volume = 0.3, type = 'sine', delay = 0) {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      try {
+        const t = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(volume, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + duration + 0.02);
+      } catch (e) {}
+    }
+    
+    function playPickupSound() {
+      playTone(660, 0.12, 0.25, 'triangle');
+      playTone(990, 0.2, 0.25, 'triangle', 0.1);
+    }
+    
+    function playDeathSound() {
+      playTone(300, 0.4, 0.35, 'sawtooth');
+      playTone(160, 0.6, 0.35, 'sawtooth', 0.2);
+    }
+    
+    function playVictorySound() {
+      [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.3, 0.3, 'triangle', i * 0.12));
+    }
+    
+    function playDangerBeep() {
+      playTone(880, 0.08, 0.12, 'square');
+    }
+    
+    // ============================================
+    // 危険警告インジケーター
+    // ============================================
+    let wasInDanger = false;
+    let dangerBeepTimer = 0;
+    
+    function updateDangerIndicator() {
+      const overlay = document.getElementById('danger-overlay');
+      const label = document.getElementById('danger-label');
+      
+      if (!hasMedicine || isPlayerDead || isPaused || demoMode) {
+        if (overlay) overlay.style.opacity = '0';
+        if (label) label.classList.remove('active');
+        wasInDanger = false;
+        return;
+      }
+      
+      let nearestDist = Infinity;
+      enemies.forEach(enemy => {
+        if (!enemy.chasing) return;
+        const d = playerPosition.distanceTo(enemy.position);
+        if (d < nearestDist) nearestDist = d;
+      });
+      
+      if (nearestDist === Infinity) {
+        if (overlay) overlay.style.opacity = '0';
+        if (label) label.classList.remove('active');
+        wasInDanger = false;
+        return;
+      }
+      
+      const intensity = Math.max(0, Math.min(1, 1 - (nearestDist - 1) / 5));
+      if (overlay) overlay.style.opacity = (0.3 + intensity * 0.7).toFixed(2);
+      if (label) label.classList.add('active');
+      
+      if (!wasInDanger) {
+        wasInDanger = true;
+        dangerBeepTimer = 0;
+        playDangerBeep();
+      } else {
+        dangerBeepTimer += deltaTime;
+        if (dangerBeepTimer > 1.2) {
+          dangerBeepTimer = 0;
+          playDangerBeep();
+        }
+      }
+    }
+    
+    // ============================================
+    // ポーズ
+    // ============================================
+    function togglePause() {
+      if (gameState !== 'playing' || isPlayerDead) return;
+      isPaused = !isPaused;
+      const pauseScreen = document.getElementById('pause-screen');
+      if (isPaused) {
+        pauseScreen.classList.add('active');
+        if (backSoundAudio) backSoundAudio.pause();
+        updateStatus('ポーズ中');
+      } else {
+        pauseScreen.classList.remove('active');
+        if (backSoundAudio) backSoundAudio.play().catch(() => {});
+        updateStatus(hasMedicine ? '薬を入手！病巣（赤い光）に向かってください' : '薬を拾って病巣に投下してください！');
+      }
+    }
+    
+    // ============================================
+    // リスタート
+    // ============================================
+    async function restartGame(returnToSelect = false) {
+      if (resetTimeoutId) {
+        clearTimeout(resetTimeoutId);
+        resetTimeoutId = null;
+      }
+      await resetGame(returnToSelect);
+    }
+    
+    // ============================================
+    // デモプレイAI
+    // 薬を拾って病巣へ向かうが、途中でランダムに走り回り、
+    // 時々カメラ（オペレータ）の方へ戻って顔を見せる
+    // ============================================
+    function steerDemoToward(tx, tz) {
+      const dx = tx - playerPosition.x;
+      const dz = tz - playerPosition.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < 0.05) {
+        aiInput.x = 0;
+        aiInput.z = 0;
+        return;
+      }
+      
+      let dirX = dx / dist;
+      let dirZ = dz / dist;
+      
+      // 敵からの回避（近いほど強く押し返す）
+      let avoidX = 0, avoidZ = 0;
+      enemies.forEach(e => {
+        const ex = e.position.x - playerPosition.x;
+        const ez = e.position.z - playerPosition.z;
+        const d = Math.hypot(ex, ez);
+        const range = 5.0;
+        if (d < range && d > 0.01) {
+          const f = (range - d) / range;
+          avoidX -= (ex / d) * f;
+          avoidZ -= (ez / d) * f;
+        }
+      });
+      
+      // 障害物（組織片）からの回避
+      trashObjects.forEach(trash => {
+        const tw = new THREE.Vector3();
+        trash.getWorldPosition(tw);
+        const ex = tw.x - playerPosition.x;
+        const ez = tw.z - playerPosition.z;
+        const d = Math.hypot(ex, ez);
+        const range = 1.2;
+        if (d < range && d > 0.01) {
+          const f = (range - d) / range;
+          avoidX -= (ex / d) * f;
+          avoidZ -= (ez / d) * f;
+        }
+      });
+      
+      // ワールド端に張り付かないように内側へ寄せる
+      const bx = WORLD_BOUNDS.xMax - 1.5;
+      const bzMin = WORLD_BOUNDS.zMin + 1.5;
+      const bzMax = WORLD_BOUNDS.zMax - 1.5;
+      if (playerPosition.x > bx) avoidX -= 1;
+      if (playerPosition.x < -bx) avoidX += 1;
+      if (playerPosition.z > bzMax) avoidZ -= 1;
+      if (playerPosition.z < bzMin) avoidZ += 1;
+      
+      const combinedX = dirX + avoidX * 1.5;
+      const combinedZ = dirZ + avoidZ * 1.5;
+      const m = Math.hypot(combinedX, combinedZ);
+      aiInput.x = m > 0 ? combinedX / m : dirX;
+      aiInput.z = m > 0 ? combinedZ / m : dirZ;
+    }
+    
+    // 敵から十分離れた安全なランダム地点を選ぶ（捕まらないように）
+    function safeWanderPoint(hasMed) {
+      const margin = 2;
+      // 薬を持っている間は病巣付近（z < -7）に行かないようにする（勝手にクリアしない）
+      const wzMin = hasMed ? -7 : (WORLD_BOUNDS.zMin + margin);
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const x = WORLD_BOUNDS.xMin + margin + Math.random() * (WORLD_BOUNDS.xMax - WORLD_BOUNDS.xMin - margin * 2);
+        const z = wzMin + Math.random() * (WORLD_BOUNDS.zMax - margin - wzMin);
+        let safe = true;
+        for (const e of enemies) {
+          const d = Math.hypot(e.position.x - x, e.position.z - z);
+          if (d < 5) { safe = false; break; }
+        }
+        if (safe) return { x: x, z: z };
+      }
+      // 見つからなければスタート地点付近に戻る
+      return { x: 0, z: 8 };
+    }
+    
+    function updateDemoAI() {
+      if (!demoMode) return;
+      if (isPlayerDead || isPaused) return;
+      
+      const now = Date.now();
+      const hasMed = hasMedicine && !isPlayerDead;
+      
+      // 薬を拾った直後に顔見せ（カメラの方を向く）を予約
+      if (hasMed) {
+        if (!demoHadMed) {
+          demoHadMed = true;
+          demoNextShowOffAt = now + 1200;
+          demoNextWanderAt = now + 5000;
+        }
+        // 顔見せ中：カメラ（オペレータ）の方へ戻る
+        if (now < demoShowOffUntil) {
+          steerDemoToward(camera.position.x, camera.position.z);
+          return;
+        }
+        if (now >= demoNextShowOffAt) {
+          demoShowOffUntil = now + 2500;
+          demoNextShowOffAt = now + 9000 + Math.random() * 4000;
+        }
+      } else {
+        demoHadMed = false;
+      }
+      
+      // ランダムに走り回る（デモを長く・楽しく見せる）
+      if (demoWanderTarget) {
+        steerDemoToward(demoWanderTarget.x, demoWanderTarget.z);
+        const d = Math.hypot(demoWanderTarget.x - playerPosition.x, demoWanderTarget.z - playerPosition.z);
+        if (d < 1.2 || now > demoWanderUntil) {
+          demoWanderTarget = null;
+        }
+        return;
+      }
+      if (now >= demoNextWanderAt) {
+        demoWanderTarget = safeWanderPoint(hasMed);
+        // 薬を持っている間は動き回りを控えめに（捕まらないように）
+        const dur = hasMed ? (1500 + Math.random() * 1500) : (2000 + Math.random() * 3000);
+        const gap = hasMed ? (8000 + Math.random() * 5000) : (5000 + Math.random() * 5000);
+        demoWanderUntil = now + dur;
+        demoNextWanderAt = now + gap;
+        return;
+      }
+      
+      // ミッション目標へ（薬→病巣）
+      let tx, tz;
+      if (!hasMed && medicineItem && !medicineItem.collected) {
+        tx = medicineItem.position.x;
+        tz = medicineItem.position.z;
+      } else if (diseaseFocus) {
+        tx = diseaseFocus.position.x;
+        tz = diseaseFocus.position.z;
+      } else {
+        aiInput.x = 0;
+        aiInput.z = 0;
+        return;
+      }
+      steerDemoToward(tx, tz);
+    }
+    
+    // タイトル画面（アバター選択）で無操作が続いたら自動でゲームを開始
+    async function maybeStartDemoFromTitle() {
+      if (demoMode || gameState !== 'title') return;
+      if (!DEMO_CONFIG.enabled) return;
+      // Webカメラ画面が開いているときは割り込まない
+      const overlay = document.getElementById('webcam-scan-overlay');
+      if (overlay && overlay.classList.contains('active')) return;
+      
+      demoMode = true;
+      updateDemoBadge();
+      
+      selectedPlayerAvatar = DEMO_CONFIG.autoStartAvatar || 'pinocchio';
+      
+      const avatarScreen = document.getElementById('avatar-select-screen');
+      if (avatarScreen) avatarScreen.classList.remove('active');
+      
+      avatarSelectAnimationRunning = false;
+      if (avatarSelectRenderer && avatarSelectRenderer.domElement) {
+        avatarSelectRenderer.domElement.remove();
+      }
+      
+      updateStatus('デモプレイ中...（操作すると通常操作に戻ります）');
+      showNotification('デモプレイを開始します。キー操作で操作に戻れます', 'notice-pickup');
+      await startGameDirectly();
+    }
+    
+    function updateDemoBadge() {
+      const el = document.getElementById('demo-badge');
+      if (!el) return;
+      el.classList.toggle('active', !!demoMode);
+    }
+    
+    // 無操作時間の監視（タイトル画面ではデモ開始、プレイ中はデモAIを有効化）
+    function initDemoTimer() {
+      if (demoTimerId) clearInterval(demoTimerId);
+      demoTimerId = setInterval(() => {
+        if (!DEMO_CONFIG.enabled) return;
+        const idleMs = Date.now() - lastInputTime;
+        if (gameState === 'title' && !demoMode) {
+          if (idleMs > DEMO_CONFIG.idleSeconds * 1000) {
+            maybeStartDemoFromTitle();
+          }
+        } else if (gameState === 'playing') {
+          const idle = idleMs > DEMO_CONFIG.idleSeconds * 1000;
+          if (idle !== demoMode) {
+            demoMode = idle;
+            updateDemoBadge();
+          }
+        }
+      }, 1000);
+    }
+    
+    // ============================================
+    // アニメーションループ
+    // ============================================
+    let animationRunning = false;
+    let animationFrameId = null;
+    
+    function stopAnimation() {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      animationRunning = false;
+      lastFrameTime = 0;
+    }
+    
+    function animate() {
+      animationFrameId = requestAnimationFrame(animate);
+      
+      const now = performance.now();
+      if (lastFrameTime === 0) lastFrameTime = now;
+      deltaTime = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+      
+      if (!isPaused) {
+        if (playerAvatar) {
+          const savedPosition = new THREE.Vector3().copy(playerPosition);
+          const savedRotation = playerRotation;
+          
+          if (playerAvatar.character && playerAvatar.character.currentVrm) {
+            const scene = playerAvatar.character.currentVrm.scene;
+            scene.position.copy(savedPosition);
+            scene.rotation.y = savedRotation;
+          }
+          
+          playerAvatar.update();
+          
+          if (playerAvatar.character && playerAvatar.character.currentVrm) {
+            const scene = playerAvatar.character.currentVrm.scene;
+            scene.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+            scene.rotation.y = savedRotation;
+            scene.updateMatrixWorld(true);
+            scene.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+            scene.rotation.y = savedRotation;
+          }
+        }
+        
+        updateDemoAI();
+        updatePlayerMovement();
+        updateEnemies();
+        updateMedicine();
+        updateDiseaseFocus();
+        updateBodyParticles();
+        updateMinimap();
+        updateProgressBar();
+        updateDangerIndicator();
+        updateLesionArrow();
+      }
+      
+      if (camera && playerAvatar && (gameState === 'playing') && !isPaused) {
+        const targetZ = playerPosition.z + 5;
+        const targetY = 2;
+        const targetX = playerPosition.x * 0.5;
+        const lerp = 1 - Math.exp(-8 * deltaTime);
+        camera.position.x += (targetX - camera.position.x) * lerp;
+        camera.position.y += (targetY - camera.position.y) * lerp;
+        camera.position.z += (targetZ - camera.position.z) * lerp;
+        camera.lookAt(playerPosition.x, playerPosition.y + 1, playerPosition.z);
+      }
+      
+      renderer.render(scene, camera);
+      
+      if (labelRenderer) {
+        labelRenderer.render(scene, camera);
+      }
+    }
+    
+    // ============================================
+    // ゲームリセット
+    // ============================================
+    async function resetGame(returnToSelect = false) {
+      const deathMessage = document.getElementById('death-message');
+      if (deathMessage) deathMessage.classList.remove('active');
+      
+      if (resetTimeoutId) {
+        clearTimeout(resetTimeoutId);
+        resetTimeoutId = null;
+      }
+      
+      isPlayerDead = false;
+      isPaused = false;
+      wasInDanger = false;
+      hasMedicine = false;
+      gameState = 'title';
+      playerPosition = new THREE.Vector3(0, 0, 12);
+      playerRotation = 0;
+      stopAnimation();
+      
+      document.getElementById('pause-screen').classList.remove('active');
+      document.getElementById('danger-overlay').style.opacity = '0';
+      document.getElementById('danger-label').classList.remove('active');
+      
+      // クリーンアップ
+      if (scene) {
+        while (scene.children.length > 0) {
+          const obj = scene.children[0];
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(mat => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if (obj.material.map) obj.material.map.dispose();
+              obj.material.dispose();
+            }
+          }
+          scene.remove(obj);
+        }
+      }
+      
+      if (renderer) {
+        if (renderer.domElement) renderer.domElement.remove();
+        renderer.dispose();
+        renderer = null;
+      }
+      
+      if (labelRenderer) {
+        if (labelRenderer.domElement) labelRenderer.domElement.remove();
+        labelRenderer = null;
+      }
+      
+      playerAvatar = null;
+      medicineItem = null;
+      diseaseFocus = null;
+      enemies = [];
+      trashObjects = [];
+      bodyParticles = [];
+      redBloodCells = [];
+      victoryLight = null;
+      document.getElementById('lesion-arrow').classList.remove('active');
+      
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+      }
+      
+      document.getElementById('medicine-indicator').classList.remove('active');
+      document.getElementById('victory-message').classList.remove('active');
+      document.getElementById('victory-restart').classList.remove('active');
+      document.getElementById('victory-qr').classList.remove('active');
+      document.getElementById('obj-medicine').className = 'objective-item pending';
+      document.getElementById('obj-medicine').textContent = '1. 薬を拾う';
+      document.getElementById('obj-deposit').className = 'objective-item pending';
+      document.getElementById('obj-deposit').textContent = '2. 病巣に薬を投下';
+      
+      const canvasContainer = document.getElementById('canvas-container');
+      if (canvasContainer) {
+        canvasContainer.classList.remove('active');
+        canvasContainer.style.display = 'none';
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (returnToSelect) {
+        await showAvatarSelect();
+        return;
+      }
+      
+      if (!selectedPlayerAvatar) selectedPlayerAvatar = 'pinocchio';
+      await startGameDirectly();
+    }
+    
+    // ============================================
+    // アバター選択画面に戻る（もう一度プレイ）
+    // ============================================
+    async function showAvatarSelect() {
+      // デモ演出の状態をリセット
+      demoMode = false;
+      demoWanderTarget = null;
+      aiInput.x = 0;
+      aiInput.z = 0;
+      updateDemoBadge();
+      if (demoVictoryRestartId) {
+        clearTimeout(demoVictoryRestartId);
+        demoVictoryRestartId = null;
+      }
+      
+      const avatarScreen = document.getElementById('avatar-select-screen');
+      avatarScreen.classList.add('active');
+      
+      const canvasContainer = document.getElementById('canvas-container');
+      canvasContainer.classList.add('active');
+      canvasContainer.style.display = 'block';
+      
+      // 前回の選択状態を反映（ピノキオ等）
+      const confirmBtn = document.getElementById('confirm-avatar-btn');
+      if (selectedPlayerAvatar && selectedPlayerAvatar !== 'webcam') {
+        confirmBtn.disabled = false;
+        document.querySelectorAll('.avatar-option').forEach(opt => {
+          opt.classList.toggle('selected', opt.dataset.avatar === selectedPlayerAvatar);
+        });
+      }
+      
+      gameState = 'title';
+      updateStatus('アバターを選択してください');
+      
+      // 3Dプレビューを再構築
+      try {
+        await initAvatarSelect3D();
+      } catch (e) {
+        console.warn('アバター選択3Dの再初期化に失敗:', e.message);
+      }
+    }
+    
+    // ============================================
+    // 直接ゲーム開始
+    // ============================================
+    async function startGameDirectly() {
+      try {
+        const loadingScreen = document.getElementById('loading-screen');
+        loadingScreen.classList.remove('hidden');
+        updateStatus('体内環境を準備中...');
+        
+        victoryStats.startTime = performance.now();
+        victoryStats.dodges = 0;
+        const canvasContainer = document.getElementById('canvas-container');
+        if (canvasContainer) {
+          canvasContainer.classList.add('active');
+          canvasContainer.style.display = 'block';
+        }
+        
+        updateStatus('3D空間を初期化中...');
+        await initThreeJS();
+        
+        updateStatus('薬を作成中...');
+        createMedicine();
+        
+        updateStatus('病巣を作成中...');
+        await createDiseaseFocus();
+        
+        updateStatus('免疫細胞を生成中...');
+        createEnemies();
+        
+        updateStatus('組織を作成中...');
+        createTrash();
+        
+        updateStatus('キーボード操作を設定中...');
+        initKeyboardControls();
+        
+        updateStatus('アバターを読み込み中...');
+        const avatarsLoaded = await loadAvatars();
+        if (!avatarsLoaded) throw new Error('アバターの読み込みに失敗しました');
+        
+        loadingScreen.classList.add('hidden');
+        
+        if (!animationRunning) {
+          animationRunning = true;
+          animate();
+        }
+        
+        gameState = 'playing';
+        updateStatus('薬を拾って病巣に投下してください！');
+        
+        startBackSound();
+        
+        showNotification('スタート！WASD/矢印キーで移動して薬を拾おう', 'notice-pickup');
+      } catch (error) {
+        console.error('ゲーム開始エラー:', error);
+        updateStatus('エラー: ' + error.message);
+        document.getElementById('loading-screen').classList.add('hidden');
+      }
+    }
+    
+    // ============================================
+    // アバター選択3D
+    // ============================================
+    let avatarSelectScene, avatarSelectCamera, avatarSelectRenderer;
+    let previewAvatar5, previewAvatar4, previewAvatarPinocchio;
+    let avatarSelectAnimationRunning = false;
+    
+    function loadGVRMwithTimeout(path, scene, camera, renderer, name, timeoutMs = 15000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error(`タイムアウト: ${name} の読み込みが${timeoutMs}ms経過しても完了しません`));
+        }, timeoutMs);
+        GVRM.load(path, scene, camera, renderer, name)
+          .then(result => { clearTimeout(timer); resolve(result); })
+          .catch(err => { clearTimeout(timer); reject(err); });
+      });
+    }
+
+    async function initAvatarSelect3D() {
+      console.log('[DEBUG] initAvatarSelect3D 開始');
+      try {
+        const container = document.getElementById('canvas-container');
+        if (!container) { console.error('[DEBUG] canvas-container なし'); return; }
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        avatarSelectScene = new THREE.Scene();
+        avatarSelectScene.background = new THREE.Color(0x404040);
+        
+        avatarSelectCamera = new THREE.PerspectiveCamera(65, width / height, 0.01, 1000);
+        avatarSelectCamera.position.set(0, 2, 8);
+        avatarSelectCamera.lookAt(0, 0, 0);
+        
+        avatarSelectRenderer = new THREE.WebGLRenderer({ antialias: true });
+        avatarSelectRenderer.setSize(width, height);
+        avatarSelectRenderer.setClearColor(0x404040);
+        container.appendChild(avatarSelectRenderer.domElement);
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+        avatarSelectScene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        directionalLight.position.set(10, 12, 5);
+        avatarSelectScene.add(directionalLight);
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight2.position.set(-10, 10, 5);
+        avatarSelectScene.add(directionalLight2);
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x666666, 1.2);
+        avatarSelectScene.add(hemisphereLight);
+        
+        const floorGeometry = new THREE.PlaneGeometry(20, 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x777777 });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        avatarSelectScene.add(floor);
+        
+        updateStatus('アバターを読み込み中...(最大15秒待機)');
+        
+        const [avail5, avail4] = await Promise.all([
+          checkFileExists('gvrm/sample5.gvrm'),
+          checkFileExists('gvrm/sample4.gvrm')
+        ]);
+        
+        if (!avail5 && !avail4) {
+          updateStatus('アバターファイルが見つかりません');
+          return;
+        }
+        
+        let loadedAny = false;
+        if (avail5) {
+          try {
+            previewAvatar5 = await loadGVRMwithTimeout('gvrm/sample5.gvrm', avatarSelectScene, avatarSelectCamera, avatarSelectRenderer, 'sample5.gvrm');
+            previewAvatar5.character.currentVrm.scene.position.set(-2.5, 0, 0);
+            await previewAvatar5.changeFBX('fbx/Idle.fbx');
+            loadedAny = true;
+          } catch (e) {
+            console.warn('sample5 読み込み失敗:', e.message);
+          }
+        }
+        if (avail4) {
+          try {
+            previewAvatar4 = await loadGVRMwithTimeout('gvrm/sample4.gvrm', avatarSelectScene, avatarSelectCamera, avatarSelectRenderer, 'sample4.gvrm');
+            previewAvatar4.character.currentVrm.scene.position.set(2.5, 0, 0);
+            await previewAvatar4.changeFBX('fbx/Idle.fbx');
+            loadedAny = true;
+          } catch (e) {
+            console.warn('sample4 読み込み失敗:', e.message);
+          }
+        }
+        
+        if (!loadedAny) {
+          updateStatus('アバターの読み込みに失敗しました');
+          return;
+        }
+        
+        // ピノキオ風アバター（コード生成・常に表示できる）
+        previewAvatarPinocchio = createPinocchioAvatar();
+        previewAvatarPinocchio.character.currentVrm.scene.position.set(0, 0, 0);
+        // プレビューカメラ（+z側）に顔を向ける
+        previewAvatarPinocchio.character.currentVrm.scene.rotation.y = Math.PI;
+        previewAvatarPinocchio.changeFBX('fbx/Idle.fbx');
+        avatarSelectScene.add(previewAvatarPinocchio.character.currentVrm.scene);
+        loadedAny = true;
+        
+        avatarSelectAnimationRunning = true;
+        animateAvatarSelect();
+        updateStatus('アバターを選択してください');
+      } catch (error) {
+        console.error('アバター選択3D初期化エラー:', error.message);
+        updateStatus('3Dプレビューなしでアバターを選択してください');
+      }
+    }
+    
+    async function checkFileExists(url) {
+      try {
+        const resp = await fetch(url, { method: 'HEAD' });
+        return resp.ok;
+      } catch {
+        return false;
+      }
+    }
+    
+    function animateAvatarSelect() {
+      if (!avatarSelectAnimationRunning) return;
+      requestAnimationFrame(animateAvatarSelect);
+      
+      if (previewAvatar5) previewAvatar5.update();
+      if (previewAvatar4) previewAvatar4.update();
+      if (previewAvatarPinocchio) previewAvatarPinocchio.update();
+      
+      if (avatarSelectCamera) {
+        const time = Date.now() * 0.0005;
+        avatarSelectCamera.position.x = Math.sin(time) * 8;
+        avatarSelectCamera.position.z = Math.cos(time) * 8;
+        avatarSelectCamera.position.y = 2 + Math.sin(time * 2) * 0.5;
+        avatarSelectCamera.lookAt(0, 0, 0);
+      }
+      
+      if (avatarSelectRenderer && avatarSelectScene && avatarSelectCamera) {
+        avatarSelectRenderer.render(avatarSelectScene, avatarSelectCamera);
+      }
+    }
+    
+    // ============================================
+    // アバター選択UI
+    // ============================================
+    function initAvatarSelection() {
+      const avatarOptions = document.querySelectorAll('.avatar-option');
+      const confirmBtn = document.getElementById('confirm-avatar-btn');
+      
+      avatarOptions.forEach(option => {
+        option.onclick = () => {
+          avatarOptions.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          selectedPlayerAvatar = option.dataset.avatar;
+          confirmBtn.disabled = false;
+          
+          if (selectedPlayerAvatar === 'webcam') {
+            openWebcamScan();
+            return;
+          }
+          
+          if (selectedPlayerAvatar === 'sample5' && previewAvatar5) {
+            previewAvatar5.character.currentVrm.scene.scale.setScalar(1.4);
+            if (previewAvatar4) previewAvatar4.character.currentVrm.scene.scale.setScalar(1.0);
+            if (previewAvatarPinocchio) previewAvatarPinocchio.character.currentVrm.scene.scale.setScalar(0.75);
+          } else if (selectedPlayerAvatar === 'sample4' && previewAvatar4) {
+            previewAvatar4.character.currentVrm.scene.scale.setScalar(1.4);
+            if (previewAvatar5) previewAvatar5.character.currentVrm.scene.scale.setScalar(1.0);
+            if (previewAvatarPinocchio) previewAvatarPinocchio.character.currentVrm.scene.scale.setScalar(0.75);
+          } else if (selectedPlayerAvatar === 'pinocchio' && previewAvatarPinocchio) {
+            previewAvatarPinocchio.character.currentVrm.scene.scale.setScalar(1.0);
+            if (previewAvatar5) previewAvatar5.character.currentVrm.scene.scale.setScalar(1.0);
+            if (previewAvatar4) previewAvatar4.character.currentVrm.scene.scale.setScalar(1.0);
+          }
+        };
+      });
+      
+      // 既定でピノキオを選択しておく（確実に表示されるプロシージャルアバター）
+      const pinocchioOption = document.querySelector('.avatar-option[data-avatar="pinocchio"]');
+      if (pinocchioOption) pinocchioOption.click();
+      
+      // 難易度選択
+      const levelOptions = document.querySelectorAll('.level-option');
+      levelOptions.forEach(opt => {
+        opt.onclick = () => {
+          levelOptions.forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          selectedLevel = opt.dataset.level;
+          updateStatus(`難易度: ${LEVEL_CONFIG[selectedLevel].label}`);
+        };
+      });
+      
+      confirmBtn.onclick = async () => {
+        if (!selectedPlayerAvatar || selectedPlayerAvatar === 'webcam') return;
+        
+        // 選択されたアバターファイルが存在するか確認（custom / pinocchio はファイル不要）
+        if (selectedPlayerAvatar !== 'sample5' && selectedPlayerAvatar !== 'custom' && selectedPlayerAvatar !== 'pinocchio') {
+          const exists = await checkFileExists(`gvrm/${selectedPlayerAvatar}.gvrm`);
+          if (!exists) {
+            console.warn(`${selectedPlayerAvatar}.gvrm が見つかりません。sample5 にフォールバックします`);
+            selectedPlayerAvatar = 'sample5';
+            updateStatus(`${selectedPlayerAvatar}.gvrm が見つからないため sample5 で起動します`);
+          }
+        }
+        
+        avatarSelectAnimationRunning = false;
+        if (avatarSelectRenderer && avatarSelectRenderer.domElement) {
+          avatarSelectRenderer.domElement.remove();
+        }
+        
+        document.getElementById('avatar-select-screen').classList.remove('active');
+        await startGameDirectly();
+      };
+    }
+    
+    // ============================================
+    // Webカメラスキャン
+    // ============================================
+    async function openWebcamScan() {
+      const overlay = document.getElementById('webcam-scan-overlay');
+      const video = document.getElementById('webcam-preview');
+      
+      overlay.classList.add('active');
+      
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' }
+        });
+        video.srcObject = webcamStream;
+        await video.play();
+      } catch (error) {
+        console.error('Webカメラエラー:', error);
+        alert('Webカメラにアクセスできませんでした');
+        overlay.classList.remove('active');
+        selectedPlayerAvatar = null;
+        document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+        document.getElementById('confirm-avatar-btn').disabled = true;
+        return;
+      }
+      
+      document.getElementById('capture-webcam-btn').onclick = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        capturedFaceImage = canvas.toDataURL('image/jpeg', 0.85);
+        
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(track => track.stop());
+          webcamStream = null;
+        }
+        
+        overlay.classList.remove('active');
+        
+        // Webカメラで撮影した顔写真を使った「顔＋自動生成ボディ」アバター
+        selectedPlayerAvatar = 'custom';
+        
+        // 撮影した顔を「新規作成」カードのプレビューに反映
+        const webcamOption = document.querySelector('.avatar-option[data-avatar="webcam"]');
+        const previewEl = webcamOption.querySelector('.avatar-preview');
+        if (previewEl) {
+          previewEl.innerHTML = '';
+          previewEl.style.padding = '0';
+          const img = document.createElement('img');
+          img.src = capturedFaceImage;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '6px';
+          previewEl.appendChild(img);
+        }
+        const titleEl = webcamOption.querySelector('h3');
+        if (titleEl) titleEl.textContent = '撮影アバター';
+        
+        // 選択状態を「新規作成」に戻す
+        document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+        webcamOption.classList.add('selected');
+        document.getElementById('confirm-avatar-btn').disabled = false;
+        
+        // 実GVRM生成はデモでは省略（顔写真＋自動生成ボディで代用）
+        updateStatus('顔を撮影しました！ 顔写真＋自動生成ボディでスタートします');
+        showNotification('顔写真からアバターを作成しました！「選択したアバターで進む」を押してください', 'notice-pickup');
+      };
+      
+      document.getElementById('cancel-webcam-btn').onclick = () => {
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(track => track.stop());
+          webcamStream = null;
+        }
+        overlay.classList.remove('active');
+        selectedPlayerAvatar = null;
+        document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+        document.getElementById('confirm-avatar-btn').disabled = true;
+      };
+    }
+    
+    // ============================================
+    // バックサウンド
+    // ============================================
+    let backSoundAudio = null;
+    
+    function startBackSound() {
+      if (backSoundAudio) {
+        backSoundAudio.pause();
+        backSoundAudio = null;
+      }
+      
+      backSoundAudio = new Audio('backsound/backsound.mp3');
+      backSoundAudio.loop = true;
+      backSoundAudio.volume = 0.4;
+      backSoundAudio.play().catch(() => {});
+    }
+    
+    // ============================================
+    // デバッグ用：敵の表示/非表示
+    // ============================================
+    let enemiesVisible = true;
+    
+    function initDebugControls() {
+      const btn = document.getElementById('toggle-enemies-btn');
+      if (!btn) return;
+      btn.onclick = () => {
+        enemiesVisible = !enemiesVisible;
+        for (const e of enemies) {
+          if (e.group) e.group.visible = enemiesVisible;
+        }
+        btn.textContent = enemiesVisible ? '免疫細胞 非表示' : '免疫細胞 表示';
+        btn.classList.toggle('off', !enemiesVisible);
+      };
+    }
+    
+    // ============================================
+    // 初期化
+    // ============================================
+    async function init() {
+      console.log('[DEBUG] init 開始');
+      try {
+        initSettingsUI();
+        applyCreditConfig();
+        
+        // リスタート系ボタンは常に有効（QR直アクセス時も含む）
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) restartBtn.addEventListener('click', () => restartGame(true));
+        const deathRestartBtn = document.getElementById('death-restart-btn');
+        if (deathRestartBtn) deathRestartBtn.addEventListener('click', () => restartGame(false));
+        const pauseRestartBtn = document.getElementById('pause-restart-btn');
+        if (pauseRestartBtn) pauseRestartBtn.addEventListener('click', () => restartGame(false));
+        
+        // 無操作時間の計測
+        window.addEventListener('pointerdown', () => {
+          lastInputTime = Date.now();
+          if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        });
+        window.addEventListener('keydown', () => {
+          lastInputTime = Date.now();
+        });
+        window.addEventListener('gamepadconnected', () => {
+          lastInputTime = Date.now();
+        });
+        
+        // QRコードからのアクセス（?result=victory）はゲームをスキップして
+        // クリア画面を直接表示する
+        const params = new URLSearchParams(location.search);
+        if (params.get('result') === 'victory' && VICTORY_SCREEN_CONFIG.enabled) {
+          document.getElementById('victory-message').classList.add('active');
+          document.getElementById('victory-restart').classList.add('active');
+          document.getElementById('victory-qr').classList.add('active');
+          document.getElementById('victory-time').textContent = '--:--';
+          document.getElementById('victory-dodges').textContent = '-';
+          generateVictoryQR();
+          updateStatus('クリア画面（QRコードからアクセス）');
+          console.log('[DEBUG] QRコードからクリア画面を表示');
+          return;
+        }
+        
+        const avatarScreen = document.getElementById('avatar-select-screen');
+        avatarScreen.classList.add('active');
+        console.log('[DEBUG] avatar-select-screen に active クラス追加');
+        
+        // 全体タイムアウト: 20秒で3Dプレビューを諦める
+        const previewTimeout = setTimeout(() => {
+          console.warn('[DEBUG] 3Dプレビュー初期化が20秒以内に完了しませんでした');
+          updateStatus('3Dプレビューをスキップしました。アバターを選択してください');
+        }, 20000);
+        
+        // 3Dアバター選択画面を初期化
+        setTimeout(async () => {
+          const canvasContainer = document.getElementById('canvas-container');
+          canvasContainer.classList.add('active');
+          canvasContainer.style.display = 'block';
+          console.log('[DEBUG] canvas-container 表示');
+          await initAvatarSelect3D();
+          clearTimeout(previewTimeout);
+        }, 100);
+        
+        initAvatarSelection();
+        initDebugControls();
+        
+        initDemoTimer();
+        
+        gameState = 'title';
+        updateStatus('アバターを選択してください');
+      } catch (error) {
+        console.error('[DEBUG] init エラー:', error.message);
+      }
+      console.log('[DEBUG] init 完了');
+    }
+    
+    init();
+    
+  </script>
+</body>
+</html>
